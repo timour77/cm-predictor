@@ -1,0 +1,182 @@
+import { useState } from 'react'
+import { api } from '../services/api'
+import { STATUS_LABELS, STATUS_COLORS } from '../utils/constants'
+
+const TZ_SLOTS = [
+  { label: 'BCN', tz: 'Europe/Madrid' },
+  { label: 'ZRH', tz: 'Europe/Zurich' },
+  { label: 'UFA', tz: 'Asia/Yekaterinburg' },
+]
+
+function formatTz(utcDate, tz) {
+  if (!utcDate) return ''
+  return new Date(utcDate).toLocaleTimeString('ru', {
+    hour: '2-digit', minute: '2-digit', timeZone: tz,
+  })
+}
+
+function TeamCrest({ src, name }) {
+  if (src) {
+    return <img className="team-crest" src={src} alt={name} onError={e => { e.target.style.display = 'none' }} />
+  }
+  return <div className="team-crest-placeholder">⚽</div>
+}
+
+const isScheduled = (status) => ['SCHEDULED', 'TIMED'].includes(status)
+const isFinished = (status) => status === 'FINISHED'
+const isLive = (status) => ['IN_PLAY', 'PAUSED'].includes(status)
+
+function parseScore(scoreStr) {
+  if (!scoreStr) return [0, 0]
+  const parts = scoreStr.split('-')
+  if (parts.length === 2) {
+    const h = parseInt(parts[0], 10)
+    const a = parseInt(parts[1], 10)
+    if (!isNaN(h) && !isNaN(a)) return [h, a]
+  }
+  return [0, 0]
+}
+
+function calcOutcome(home, away) {
+  if (home > away) return '1'
+  if (away > home) return '2'
+  return 'X'
+}
+
+function ScoreStepper({ value, onChange }) {
+  return (
+    <div className="score-stepper">
+      <button
+        className="stepper-btn"
+        onClick={() => onChange(value + 1)}
+        type="button"
+      >+</button>
+      <div className="stepper-value">{value}</div>
+      <button
+        className="stepper-btn"
+        onClick={() => onChange(Math.max(0, value - 1))}
+        type="button"
+        disabled={value === 0}
+      >−</button>
+    </div>
+  )
+}
+
+export function MatchCard({ match, onPredictionSaved }) {
+  const pred = match.user_prediction
+  const [homeGoals, setHomeGoals] = useState(parseScore(pred?.predicted_score)[0])
+  const [awayGoals, setAwayGoals] = useState(parseScore(pred?.predicted_score)[1])
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+  const [saved, setSaved] = useState(!!pred)
+
+  const outcome = calcOutcome(homeGoals, awayGoals)
+  const predictedScore = `${homeGoals}-${awayGoals}`
+
+  const statusLabel = STATUS_LABELS[match.status] || match.status
+  const statusClass = isFinished(match.status) ? 'finished' : isLive(match.status) ? 'live' : ''
+
+  function handleChange(setter) {
+    return (val) => { setter(val); setSaved(false) }
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    setError(null)
+    try {
+      const result = await api.savePrediction(match.external_id, match.competition_id, outcome, predictedScore)
+      setSaved(true)
+      onPredictionSaved && onPredictionSaved(result)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const homeScore = match.home_goals !== null && match.home_goals !== undefined ? match.home_goals : '-'
+  const awayScore = match.away_goals !== null && match.away_goals !== undefined ? match.away_goals : '-'
+
+  const outcomeLabel = { '1': 'Победа хозяев', 'X': 'Ничья', '2': 'Победа гостей' }
+
+  return (
+    <div className="match-card">
+      <div className="match-header">
+        <div className="match-times">
+          {TZ_SLOTS.map(({ label, tz }) => (
+            <span key={tz} className="match-time-slot">
+              <span className="match-time-label">{label}</span>
+              {formatTz(match.match_date, tz)}
+            </span>
+          ))}
+        </div>
+        {match.matchday && <span>MD {match.matchday}</span>}
+        <span
+          className={`match-status ${statusClass}`}
+          style={{ color: STATUS_COLORS[match.status] }}
+        >
+          {statusLabel}
+        </span>
+      </div>
+
+      <div className="match-teams">
+        <div className="team">
+          <TeamCrest src={match.home_team_crest} name={match.home_team} />
+          <span className="team-name">{match.home_team}</span>
+        </div>
+
+        <div className="match-score">
+          {isFinished(match.status) || isLive(match.status)
+            ? <>{homeScore}<span className="match-score-separator"> : </span>{awayScore}</>
+            : <span style={{ fontSize: 20, color: 'var(--text-muted)' }}>vs</span>
+          }
+        </div>
+
+        <div className="team">
+          <TeamCrest src={match.away_team_crest} name={match.away_team} />
+          <span className="team-name">{match.away_team}</span>
+        </div>
+      </div>
+
+      {/* Prediction form for scheduled matches */}
+      {isScheduled(match.status) && (
+        <div className="prediction-form">
+          <div className="stepper-row">
+            <ScoreStepper value={homeGoals} onChange={handleChange(setHomeGoals)} />
+            <div className="stepper-colon">:</div>
+            <ScoreStepper value={awayGoals} onChange={handleChange(setAwayGoals)} />
+          </div>
+
+          <div className="stepper-footer">
+            <span className={`outcome-chip outcome-${outcome}`}>{outcomeLabel[outcome]}</span>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? '...' : saved ? '✓ Сохранено' : 'Сохранить'}
+            </button>
+          </div>
+
+          {error && <div className="error-msg">{error}</div>}
+        </div>
+      )}
+
+      {/* Show saved prediction result for finished matches */}
+      {isFinished(match.status) && pred && (
+        <div className="prediction-result">
+          <div>
+            Прогноз:
+            <span className={`prediction-badge outcome-${pred.outcome}`} style={{ marginLeft: 8 }}>
+              {pred.outcome}
+            </span>
+            {pred.predicted_score && (
+              <span className="chip" style={{ marginLeft: 6 }}>{pred.predicted_score}</span>
+            )}
+          </div>
+          <span className="points-badge">+{pred.points} pts</span>
+        </div>
+      )}
+    </div>
+  )
+}

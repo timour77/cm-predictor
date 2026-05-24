@@ -1,0 +1,69 @@
+from pydantic import BaseModel
+from typing import Optional, List
+
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    user_id: int
+    token: str
+    username: str
+
+
+class PredictionRequest(BaseModel):
+    match_id: int
+    competition_id: int
+    outcome: Optional[str] = None   # "1", "X", "2"
+    predicted_score: Optional[str] = None  # "2-1"
+
+
+class PredictionResponse(BaseModel):
+    id: int
+    match_id: int
+    competition_id: int
+    outcome: Optional[str]
+    predicted_score: Optional[str]
+    points: int
+
+
+class MatchResponse(BaseModel):
+    external_id: int
+    competition_id: int
+    home_team: str
+    away_team: str
+    home_team_crest: Optional[str]
+    away_team_crest: Optional[str]
+    match_date: str
+    venue: Optional[str]
+    status: str
+    home_goals: Optional[int]
+    away_goals: Optional[int]
+    matchday: Optional[int]
+    user_prediction: Optional[PredictionResponse] = None
+
+
+class LeaderboardEntry(BaseModel):
+    rank: int
+    user_id: int
+    username: str
+    total_points: int
+    correct_outcomes: int
+    correct_scores: int
+
+
+class CompetitionResponse(BaseModel):
+    id: int
+    name: str
+    code: str
+    type: str
+    emblem: Optional[str]
+    area: str
+    is_active: bool
