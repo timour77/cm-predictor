@@ -3,11 +3,13 @@ import { useAuth } from './hooks/useAuth'
 import { LoginPage } from './pages/LoginPage'
 import { HomePage } from './pages/HomePage'
 import { LeaderboardPage } from './pages/LeaderboardPage'
+import { ProfilePage } from './pages/ProfilePage'
 import { Header } from './components/Header'
 
 const TABS = [
-  { id: 'matches', label: 'Matches', icon: '⚽' },
-  { id: 'leaderboard', label: 'Leaders', icon: '🏆' },
+  { id: 'matches', label: 'Матчи', icon: '⚽' },
+  { id: 'leaderboard', label: 'Лидеры', icon: '🏆' },
+  { id: 'profile', label: 'Профиль', icon: '👤' },
 ]
 
 export default function App() {
@@ -19,17 +21,23 @@ export default function App() {
     return register(username, password)
   }
 
+  function handleLogout() {
+    logout()
+    setTab('matches')
+  }
+
   if (!user) {
     return <LoginPage onAuth={handleAuth} />
   }
 
   return (
     <>
-      <Header user={user} onLogout={logout} />
+      <Header user={user} onLogout={handleLogout} />
 
       <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {tab === 'matches' && <HomePage user={user} />}
         {tab === 'leaderboard' && <LeaderboardPage user={user} />}
+        {tab === 'profile' && <ProfilePage user={user} onLogout={handleLogout} />}
       </main>
 
       <nav className="nav-tabs">
