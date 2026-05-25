@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, matches, predictions, leaderboard, competitions
+from app.routers import auth, matches, predictions, leaderboard, competitions, users
 
 app = FastAPI(title="CM Predictor API", version="1.0.0")
 
@@ -18,6 +18,7 @@ app.include_router(matches.router, prefix="/api/matches", tags=["matches"])
 app.include_router(predictions.router, prefix="/api/predictions", tags=["predictions"])
 app.include_router(leaderboard.router, prefix="/api/leaderboard", tags=["leaderboard"])
 app.include_router(competitions.router, prefix="/api/competitions", tags=["competitions"])
+app.include_router(users.router, prefix="/api/users", tags=["users"])
 
 
 @app.get("/api/health")

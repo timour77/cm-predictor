@@ -51,6 +51,11 @@ export const api = {
 
   getMatchPredictions: (matchId) => request('GET', `/predictions/match/${matchId}`),
 
+  // Users
+  getUsers: () => request('GET', '/users'),
+  getUserStats: (userId) => request('GET', `/users/${userId}/stats`),
+  getUserPredictions: (userId) => request('GET', `/users/${userId}/predictions`),
+
   // Leaderboard
   getLeaderboard: (competitionId) => {
     const params = competitionId ? `?competition_id=${competitionId}` : ''

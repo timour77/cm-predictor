@@ -79,3 +79,27 @@ class CompetitionResponse(BaseModel):
     emblem: Optional[str]
     area: str
     is_active: bool
+
+
+class UserListEntry(BaseModel):
+    id: int
+    username: str
+    total_predictions: int
+    total_points: int
+    correct_predictions: int
+
+
+class UserPredictionHistory(BaseModel):
+    id: int
+    match_id: int
+    competition_id: int
+    competition_name: Optional[str]
+    home_team: Optional[str]
+    away_team: Optional[str]
+    home_goals: Optional[int]
+    away_goals: Optional[int]
+    match_date: Optional[str]
+    match_status: Optional[str]
+    outcome: Optional[str]
+    predicted_score: Optional[str]
+    points: int

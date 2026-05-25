@@ -513,6 +513,134 @@ body {
 .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
 .empty-state-text { font-size: 15px; }
 
+/* Participants page */
+.participant-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  border-bottom: 1px solid rgba(71, 85, 105, 0.4);
+  text-align: left;
+  transition: background 0.12s;
+}
+.participant-row:last-child { border-bottom: none; }
+.participant-row:hover { background: rgba(255,255,255,0.03); }
+.participant-row.me { background: rgba(217, 119, 6, 0.07); }
+.participant-rank {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 22px;
+  text-align: center;
+}
+.participant-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.participant-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.me-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 100px;
+  background: rgba(217, 119, 6, 0.2);
+  color: var(--primary);
+  letter-spacing: 0.04em;
+}
+
+/* User detail */
+.user-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.user-detail-name {
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.stat-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 8px;
+  text-align: center;
+}
+.stat-box-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+.stat-box-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+/* Prediction history */
+.pred-history-item {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(71, 85, 105, 0.4);
+}
+.pred-history-item:last-child { border-bottom: none; }
+.pred-history-match {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.pred-history-comp {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.pred-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pred-history-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pred-history-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.points-badge.zero { color: var(--text-muted); }
+
 /* Predictions toggle & list */
 .predictions-toggle {
   width: 100%;
