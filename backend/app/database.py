@@ -116,14 +116,20 @@ def init_db():
 def fetchone(query: str, params: tuple = ()):
     with get_conn() as conn:
         cur = conn.cursor()
-        cur.execute(query, params or None)
+        if params:
+            cur.execute(query, params)
+        else:
+            cur.execute(query)
         return _to_dict(cur, cur.fetchone())
 
 
 def fetchall(query: str, params: tuple = ()) -> list:
     with get_conn() as conn:
         cur = conn.cursor()
-        cur.execute(query, params or None)
+        if params:
+            cur.execute(query, params)
+        else:
+            cur.execute(query)
         if cur.description is None:
             return []
         cols = [d[0] for d in cur.description]
@@ -133,7 +139,10 @@ def fetchall(query: str, params: tuple = ()) -> list:
 def execute(query: str, params: tuple = ()) -> Optional[int]:
     with get_conn() as conn:
         cur = conn.cursor()
-        cur.execute(query, params or None)
+        if params:
+            cur.execute(query, params)
+        else:
+            cur.execute(query)
         if cur.description:
             row = cur.fetchone()
             return row[0] if row else None
