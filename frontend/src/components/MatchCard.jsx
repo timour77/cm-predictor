@@ -43,6 +43,25 @@ function calcOutcome(home, away) {
   return 'X'
 }
 
+function outcomeText(outcome, homeTeam, awayTeam) {
+  if (outcome === '1') return `Победа ${homeTeam}`
+  if (outcome === '2') return `Победа ${awayTeam}`
+  return 'Ничья'
+}
+
+function formatRelativeTime(isoStr) {
+  if (!isoStr) return ''
+  const diff = Date.now() - new Date(isoStr).getTime()
+  const min = Math.floor(diff / 60000)
+  if (min < 1) return 'только что'
+  if (min < 60) return `${min} мин назад`
+  const h = Math.floor(min / 60)
+  if (h < 24) return `${h} ч назад`
+  const d = Math.floor(h / 24)
+  if (d < 7) return `${d} дн назад`
+  return new Date(isoStr).toLocaleDateString('ru', { day: 'numeric', month: 'short' })
+}
+
 function ScoreStepper({ value, onChange }) {
   return (
     <div className="score-stepper">
@@ -160,26 +179,42 @@ export function MatchCard({ match, currentUserId, onPredictionSaved }) {
 
       {/* Prediction form for scheduled matches */}
       {isScheduled(match.status) && (
-        <div className="prediction-form">
-          <div className="stepper-row">
-            <ScoreStepper value={homeGoals} onChange={handleChange(setHomeGoals)} />
-            <div className="stepper-colon">:</div>
-            <ScoreStepper value={awayGoals} onChange={handleChange(setAwayGoals)} />
-          </div>
-
-          <div className="stepper-footer">
-            <span className={`outcome-chip outcome-${outcome}`}>{outcomeLabel[outcome]}</span>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={handleSave}
-              disabled={saving}
-            >
-              {saving ? '...' : saved ? '✓ Сохранено' : 'Сохранить'}
+        saved ? (
+          <div className="prediction-saved-view">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="chip" style={{ fontSize: 16, fontWeight: 700 }}>{predictedScore}</span>
+              <span className={`outcome-chip outcome-${outcome}`}>
+                {outcomeText(outcome, match.home_team, match.away_team)}
+              </span>
+            </div>
+            <button className="btn btn-ghost btn-sm" onClick={() => setSaved(false)}>
+              ✏ Изменить
             </button>
           </div>
+        ) : (
+          <div className="prediction-form">
+            <div className="stepper-row">
+              <ScoreStepper value={homeGoals} onChange={handleChange(setHomeGoals)} />
+              <div className="stepper-colon">:</div>
+              <ScoreStepper value={awayGoals} onChange={handleChange(setAwayGoals)} />
+            </div>
 
-          {error && <div className="error-msg">{error}</div>}
-        </div>
+            <div className="stepper-footer">
+              <span className={`outcome-chip outcome-${outcome}`}>
+                {outcomeText(outcome, match.home_team, match.away_team)}
+              </span>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleSave}
+                disabled={saving}
+              >
+                {saving ? '...' : 'Сохранить'}
+              </button>
+            </div>
+
+            {error && <div className="error-msg">{error}</div>}
+          </div>
+        )
       )}
 
       {/* Show saved prediction result for finished matches */}
@@ -213,16 +248,28 @@ export function MatchCard({ match, currentUserId, onPredictionSaved }) {
               key={p.user_id}
               className={`prediction-row${p.user_id === currentUserId ? ' me' : ''}`}
             >
-              <span className="prediction-row-name">{p.username}</span>
-              <div className="prediction-row-right">
-                {p.predicted_score && (
-                  <span className="chip">{p.predicted_score}</span>
-                )}
-                {p.outcome && (
-                  <span className={`prediction-badge outcome-${p.outcome}`}>{p.outcome}</span>
-                )}
-                {isFinished(match.status) && (
-                  <span className="points-badge">+{p.points}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <span className="prediction-row-name">{p.username}</span>
+                  {isFinished(match.status) && (
+                    <span className="points-badge">+{p.points}</span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  {p.predicted_score && (
+                    <span className="chip">{p.predicted_score}</span>
+                  )}
+                  {p.outcome && (
+                    <span className={`prediction-badge outcome-${p.outcome}`} style={{ fontSize: 11 }}>
+                      {outcomeText(p.outcome, match.home_team, match.away_team)}
+                    </span>
+                  )}
+                </div>
+                {p.updated_at && (
+                  <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-muted)', display: 'flex', gap: 6 }}>
+                    <span>{formatRelativeTime(p.updated_at)}</span>
+                    {p.edit_count > 0 && <span>· ред. {p.edit_count}×</span>}
+                  </div>
                 )}
               </div>
             </div>

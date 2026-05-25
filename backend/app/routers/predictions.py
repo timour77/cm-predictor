@@ -37,13 +37,14 @@ def save_prediction(body: PredictionRequest, current_user: dict = Depends(get_cu
     if existing:
         pred_id = existing["id"]
         execute(
-            "UPDATE predictions SET outcome=%s, predicted_score=%s, competition_id=%s WHERE id=%s",
+            """UPDATE predictions SET outcome=%s, predicted_score=%s, competition_id=%s,
+               updated_at=NOW(), edit_count=COALESCE(edit_count,0)+1 WHERE id=%s""",
             (body.outcome, body.predicted_score, body.competition_id, pred_id),
         )
     else:
         pred_id = execute(
-            """INSERT INTO predictions (user_id, match_id, competition_id, outcome, predicted_score)
-               VALUES (%s,%s,%s,%s,%s) RETURNING id""",
+            """INSERT INTO predictions (user_id, match_id, competition_id, outcome, predicted_score, updated_at, edit_count)
+               VALUES (%s,%s,%s,%s,%s,NOW(),0) RETURNING id""",
             (current_user["user_id"], body.match_id, body.competition_id, body.outcome, body.predicted_score),
         )
 
@@ -127,7 +128,8 @@ def delete_prediction(prediction_id: int, current_user: dict = Depends(get_curre
 @router.get("/match/{match_id}")
 def get_match_predictions(match_id: int, current_user: dict = Depends(get_current_user)):
     rows = fetchall(
-        """SELECT p.outcome, p.predicted_score, p.points, u.username, u.id as user_id
+        """SELECT p.outcome, p.predicted_score, p.points, u.username, u.id as user_id,
+                  p.updated_at::text as updated_at, COALESCE(p.edit_count, 0) as edit_count
            FROM predictions p JOIN users u ON u.id = p.user_id
            WHERE p.match_id = %s
            ORDER BY p.points DESC NULLS LAST, u.username""",
@@ -140,6 +142,8 @@ def get_match_predictions(match_id: int, current_user: dict = Depends(get_curren
             "outcome": r["outcome"],
             "predicted_score": r["predicted_score"],
             "points": r["points"] or 0,
+            "updated_at": r.get("updated_at"),
+            "edit_count": r.get("edit_count") or 0,
         }
         for r in rows
     ]

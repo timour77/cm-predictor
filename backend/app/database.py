@@ -47,6 +47,8 @@ SCHEMA_STATEMENTS = [
         area TEXT,
         is_active INTEGER DEFAULT 1
     )""",
+    "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP",
+    "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS edit_count INTEGER DEFAULT 0",
     "CREATE INDEX IF NOT EXISTS idx_predictions_user ON predictions(user_id)",
     "CREATE INDEX IF NOT EXISTS idx_predictions_match ON predictions(match_id)",
     "CREATE INDEX IF NOT EXISTS idx_predictions_competition ON predictions(competition_id)",

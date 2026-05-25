@@ -4,7 +4,6 @@ import { LoginPage } from './pages/LoginPage'
 import { HomePage } from './pages/HomePage'
 import { LeaderboardPage } from './pages/LeaderboardPage'
 import { ProfilePage } from './pages/ProfilePage'
-import { Header } from './components/Header'
 import { ParticipantsPage } from './pages/ParticipantsPage'
 
 const TABS = [
@@ -56,8 +55,6 @@ export default function App() {
 
   return (
     <>
-      <Header user={user} onLogout={handleLogout} />
-
       <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {tab === 'matches' && <HomePage user={user} />}
         {tab === 'leaderboard' && <LeaderboardPage user={user} />}

@@ -375,6 +375,16 @@ body {
   gap: 10px;
 }
 
+/* Saved prediction compact view */
+.prediction-saved-view {
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 /* Score steppers */
 .stepper-row {
   display: flex;
