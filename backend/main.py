@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import init_db
@@ -32,6 +32,12 @@ def startup():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+def catch_all(path: str, request: Request):
+    routes = [r.path for r in app.routes if hasattr(r, "path")]
+    return {"received_path": request.url.path, "registered_routes": routes}
 
 
 @app.post("/api/admin/init-db")
