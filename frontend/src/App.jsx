@@ -20,13 +20,12 @@ export default function App() {
   useEffect(() => {
     const tg = window.Telegram?.WebApp
     if (!tg?.initData) return
-    if (user) {
-      tg.ready()
-      tg.expand()
-      return
-    }
     tg.ready()
     tg.expand()
+    if (user) {
+      setTgLoading(false)
+      return
+    }
     telegramLogin(tg.initData).finally(() => setTgLoading(false))
   }, [])
 
