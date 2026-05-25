@@ -11,11 +11,11 @@ router = APIRouter()
 
 
 def _recalculate_and_update(prediction_id: int):
-    row = fetchone("SELECT * FROM predictions WHERE id=?", (prediction_id,))
+    row = fetchone("SELECT * FROM predictions WHERE id=%s", (prediction_id,))
     if not row:
         return
     match_row = fetchone(
-        "SELECT home_goals, away_goals, status FROM match_results WHERE external_match_id=?",
+        "SELECT home_goals, away_goals, status FROM match_results WHERE external_match_id=%s",
         (row["match_id"],),
     )
     if match_row and match_row["status"] == "FINISHED":
@@ -25,29 +25,30 @@ def _recalculate_and_update(prediction_id: int):
             match_row["home_goals"],
             match_row["away_goals"],
         )
-        execute("UPDATE predictions SET points=? WHERE id=?", (pts, prediction_id))
+        execute("UPDATE predictions SET points=%s WHERE id=%s", (pts, prediction_id))
 
 
 @router.post("/", response_model=PredictionResponse)
 def save_prediction(body: PredictionRequest, current_user: dict = Depends(get_current_user)):
     existing = fetchone(
-        "SELECT id FROM predictions WHERE user_id=? AND match_id=?",
+        "SELECT id FROM predictions WHERE user_id=%s AND match_id=%s",
         (current_user["user_id"], body.match_id),
     )
     if existing:
         pred_id = existing["id"]
         execute(
-            "UPDATE predictions SET outcome=?, predicted_score=?, competition_id=? WHERE id=?",
+            "UPDATE predictions SET outcome=%s, predicted_score=%s, competition_id=%s WHERE id=%s",
             (body.outcome, body.predicted_score, body.competition_id, pred_id),
         )
     else:
         pred_id = execute(
-            "INSERT INTO predictions (user_id, match_id, competition_id, outcome, predicted_score) VALUES (?,?,?,?,?)",
+            """INSERT INTO predictions (user_id, match_id, competition_id, outcome, predicted_score)
+               VALUES (%s,%s,%s,%s,%s) RETURNING id""",
             (current_user["user_id"], body.match_id, body.competition_id, body.outcome, body.predicted_score),
         )
 
     _recalculate_and_update(pred_id)
-    row = fetchone("SELECT * FROM predictions WHERE id=?", (pred_id,))
+    row = fetchone("SELECT * FROM predictions WHERE id=%s", (pred_id,))
     return PredictionResponse(
         id=row["id"],
         match_id=row["match_id"],
@@ -65,11 +66,11 @@ def get_my_predictions(
 ):
     if competition_id:
         rows = fetchall(
-            "SELECT * FROM predictions WHERE user_id=? AND competition_id=?",
+            "SELECT * FROM predictions WHERE user_id=%s AND competition_id=%s",
             (current_user["user_id"], competition_id),
         )
     else:
-        rows = fetchall("SELECT * FROM predictions WHERE user_id=?", (current_user["user_id"],))
+        rows = fetchall("SELECT * FROM predictions WHERE user_id=%s", (current_user["user_id"],))
     return [
         PredictionResponse(
             id=r["id"],
@@ -90,17 +91,17 @@ def update_prediction(
     current_user: dict = Depends(get_current_user),
 ):
     row = fetchone(
-        "SELECT * FROM predictions WHERE id=? AND user_id=?",
+        "SELECT * FROM predictions WHERE id=%s AND user_id=%s",
         (prediction_id, current_user["user_id"]),
     )
     if not row:
         raise HTTPException(404, "Prediction not found")
     execute(
-        "UPDATE predictions SET outcome=?, predicted_score=? WHERE id=?",
+        "UPDATE predictions SET outcome=%s, predicted_score=%s WHERE id=%s",
         (body.outcome, body.predicted_score, prediction_id),
     )
     _recalculate_and_update(prediction_id)
-    row = fetchone("SELECT * FROM predictions WHERE id=?", (prediction_id,))
+    row = fetchone("SELECT * FROM predictions WHERE id=%s", (prediction_id,))
     return PredictionResponse(
         id=row["id"],
         match_id=row["match_id"],
@@ -114,10 +115,10 @@ def update_prediction(
 @router.delete("/{prediction_id}")
 def delete_prediction(prediction_id: int, current_user: dict = Depends(get_current_user)):
     row = fetchone(
-        "SELECT id FROM predictions WHERE id=? AND user_id=?",
+        "SELECT id FROM predictions WHERE id=%s AND user_id=%s",
         (prediction_id, current_user["user_id"]),
     )
     if not row:
         raise HTTPException(404, "Prediction not found")
-    execute("DELETE FROM predictions WHERE id=?", (prediction_id,))
+    execute("DELETE FROM predictions WHERE id=%s", (prediction_id,))
     return {"success": True}

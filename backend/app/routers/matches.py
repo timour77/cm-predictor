@@ -37,7 +37,7 @@ def list_matches(
         pred = None
         if current_user:
             row = fetchone(
-                "SELECT * FROM predictions WHERE user_id=? AND match_id=?",
+                "SELECT * FROM predictions WHERE user_id=%s AND match_id=%s",
                 (current_user["user_id"], m["external_id"]),
             )
             if row:

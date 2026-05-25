@@ -62,13 +62,13 @@ def register(body: RegisterRequest):
     if len(body.password) < 4:
         raise HTTPException(400, "Password must be at least 4 characters")
 
-    existing = fetchone("SELECT id FROM users WHERE username = ?", (body.username,))
+    existing = fetchone("SELECT id FROM users WHERE username = %s", (body.username,))
     if existing:
         raise HTTPException(400, "Username already taken")
 
     hashed = hash_password(body.password)
     user_id = execute(
-        "INSERT INTO users (username, password) VALUES (?, ?)",
+        "INSERT INTO users (username, password) VALUES (%s, %s) RETURNING id",
         (body.username, hashed),
     )
     token = create_token(user_id, body.username)
@@ -87,7 +87,7 @@ def get_my_stats(current_user: dict = Depends(get_current_user)):
                COALESCE(SUM(CASE WHEN p.points > 0 THEN 1 ELSE 0 END), 0) as correct_predictions
         FROM users u
         LEFT JOIN predictions p ON p.user_id = u.id
-        WHERE u.id = ?
+        WHERE u.id = %s
         GROUP BY u.id
         """,
         (user_id,),
@@ -101,7 +101,7 @@ def get_my_stats(current_user: dict = Depends(get_current_user)):
             GROUP BY user_id
             HAVING SUM(points) > 0
         )
-        SELECT rnk FROM ranked WHERE user_id = ?
+        SELECT rnk FROM ranked WHERE user_id = %s
         """,
         (user_id,),
     )
@@ -117,7 +117,7 @@ def get_my_stats(current_user: dict = Depends(get_current_user)):
 
 @router.post("/login", response_model=LoginResponse)
 def login(body: LoginRequest):
-    user = fetchone("SELECT * FROM users WHERE username = ?", (body.username,))
+    user = fetchone("SELECT * FROM users WHERE username = %s", (body.username,))
     if not user or not verify_password(body.password, user["password"]):
         raise HTTPException(401, "Invalid username or password")
     token = create_token(user["id"], user["username"])

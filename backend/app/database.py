@@ -1,57 +1,54 @@
-import sqlite3
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from contextlib import contextmanager
-from app.utils.config import DATABASE_PATH
+from typing import Optional
+from app.utils.config import DATABASE_URL
 
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    telegram_id INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS predictions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    match_id INTEGER NOT NULL,
-    competition_id INTEGER NOT NULL,
-    outcome TEXT,
-    predicted_score TEXT,
-    points INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    UNIQUE(user_id, match_id)
-);
-
-CREATE TABLE IF NOT EXISTS match_results (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    external_match_id INTEGER NOT NULL UNIQUE,
-    competition_id INTEGER NOT NULL,
-    home_team TEXT NOT NULL,
-    away_team TEXT NOT NULL,
-    home_goals INTEGER,
-    away_goals INTEGER,
-    match_date TEXT,
-    status TEXT,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS competitions (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    code TEXT,
-    type TEXT,
-    emblem TEXT,
-    area TEXT,
-    is_active INTEGER DEFAULT 1
-);
-
-CREATE INDEX IF NOT EXISTS idx_predictions_user ON predictions(user_id);
-CREATE INDEX IF NOT EXISTS idx_predictions_match ON predictions(match_id);
-CREATE INDEX IF NOT EXISTS idx_predictions_competition ON predictions(competition_id);
-CREATE INDEX IF NOT EXISTS idx_match_results_competition ON match_results(competition_id);
-"""
+SCHEMA_STATEMENTS = [
+    """CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        telegram_id BIGINT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""",
+    """CREATE TABLE IF NOT EXISTS predictions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        match_id INTEGER NOT NULL,
+        competition_id INTEGER NOT NULL,
+        outcome TEXT,
+        predicted_score TEXT,
+        points INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, match_id)
+    )""",
+    """CREATE TABLE IF NOT EXISTS match_results (
+        id SERIAL PRIMARY KEY,
+        external_match_id INTEGER NOT NULL UNIQUE,
+        competition_id INTEGER NOT NULL,
+        home_team TEXT NOT NULL,
+        away_team TEXT NOT NULL,
+        home_goals INTEGER,
+        away_goals INTEGER,
+        match_date TEXT,
+        status TEXT,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""",
+    """CREATE TABLE IF NOT EXISTS competitions (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        code TEXT,
+        type TEXT,
+        emblem TEXT,
+        area TEXT,
+        is_active INTEGER DEFAULT 1
+    )""",
+    "CREATE INDEX IF NOT EXISTS idx_predictions_user ON predictions(user_id)",
+    "CREATE INDEX IF NOT EXISTS idx_predictions_match ON predictions(match_id)",
+    "CREATE INDEX IF NOT EXISTS idx_predictions_competition ON predictions(competition_id)",
+    "CREATE INDEX IF NOT EXISTS idx_match_results_competition ON match_results(competition_id)",
+]
 
 DEFAULT_COMPETITIONS = [
     (2000, "FIFA World Cup", "WC", "CUP", None, "World", 1),
@@ -69,20 +66,10 @@ DEFAULT_COMPETITIONS = [
 ]
 
 
-def init_db():
-    with get_conn() as conn:
-        conn.executescript(SCHEMA)
-        conn.executemany(
-            "INSERT OR IGNORE INTO competitions (id, name, code, type, emblem, area, is_active) VALUES (?,?,?,?,?,?,?)",
-            DEFAULT_COMPETITIONS,
-        )
-
-
 @contextmanager
 def get_conn():
-    conn = sqlite3.connect(DATABASE_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
+    url = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    conn = psycopg2.connect(url)
     try:
         yield conn
         conn.commit()
@@ -93,17 +80,38 @@ def get_conn():
         conn.close()
 
 
-def fetchone(query: str, params: tuple = ()) -> sqlite3.Row:
+def init_db():
     with get_conn() as conn:
-        return conn.execute(query, params).fetchone()
+        with conn.cursor() as cur:
+            for stmt in SCHEMA_STATEMENTS:
+                cur.execute(stmt)
+            for comp in DEFAULT_COMPETITIONS:
+                cur.execute(
+                    """INSERT INTO competitions (id, name, code, type, emblem, area, is_active)
+                       VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING""",
+                    comp,
+                )
+
+
+def fetchone(query: str, params: tuple = ()):
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(query, params)
+            return cur.fetchone()
 
 
 def fetchall(query: str, params: tuple = ()) -> list:
     with get_conn() as conn:
-        return conn.execute(query, params).fetchall()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(query, params)
+            return cur.fetchall()
 
 
-def execute(query: str, params: tuple = ()) -> int:
+def execute(query: str, params: tuple = ()) -> Optional[int]:
     with get_conn() as conn:
-        cur = conn.execute(query, params)
-        return cur.lastrowid
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(query, params)
+            if cur.description:
+                row = cur.fetchone()
+                return row["id"] if row else None
+            return None

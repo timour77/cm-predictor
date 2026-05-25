@@ -1,0 +1,7 @@
+fastapi==0.104.1
+requests==2.31.0
+pydantic==2.5.0
+python-dotenv==1.0.0
+bcrypt==4.1.1
+PyJWT==2.10.1
+psycopg2-binary==2.9.9
