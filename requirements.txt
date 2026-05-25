@@ -1,7 +1,7 @@
-fastapi==0.104.1
-requests==2.31.0
-pydantic==2.5.0
-python-dotenv==1.0.0
-bcrypt==4.1.1
-PyJWT==2.10.1
-pg8000==1.31.2
+fastapi>=0.115.0
+requests>=2.31.0
+pydantic>=2.10.0
+python-dotenv>=1.0.0
+bcrypt>=4.1.1
+PyJWT>=2.10.1
+pg8000>=1.31.2
