@@ -27,10 +27,42 @@ def health():
 
 @app.post("/api/admin/init-db")
 def admin_init_db():
-    from app.database import init_db, fetchall
+    import traceback
+    from app.database import get_conn
+    results = []
     try:
-        init_db()
-        comps = fetchall("SELECT id, name FROM competitions ORDER BY name")
-        return {"status": "ok", "competitions_count": len(comps), "competitions": comps}
+        with get_conn() as conn:
+            cur = conn.cursor()
+            results.append("connected")
+            cur.execute("SELECT 1")
+            results.append("ping ok")
+            cur.execute("""CREATE TABLE IF NOT EXISTS competitions (
+                id INTEGER PRIMARY KEY, name TEXT NOT NULL, code TEXT,
+                type TEXT, emblem TEXT, area TEXT, is_active INTEGER DEFAULT 1)""")
+            results.append("table ok")
+            cur.execute("SELECT count(*) FROM competitions")
+            row = cur.fetchone()
+            count_before = row[0] if row else 0
+            results.append(f"count before: {count_before}")
+            comps_data = [
+                (2001, "UEFA Champions League", "CL", "CUP", "Europe"),
+                (2014, "Primera Division", "PD", "LEAGUE", "Spain"),
+                (2021, "Premier League", "PL", "LEAGUE", "England"),
+                (2019, "Serie A", "SA", "LEAGUE", "Italy"),
+                (2002, "Bundesliga", "BL1", "LEAGUE", "Germany"),
+                (2015, "Ligue 1", "FL1", "LEAGUE", "France"),
+            ]
+            for c in comps_data:
+                cur.execute(
+                    "INSERT INTO competitions (id, name, code, type, area) VALUES (%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
+                    c,
+                )
+            results.append("insert ok")
+            cur.execute("SELECT id, name FROM competitions ORDER BY name")
+            rows = cur.fetchall()
+            cols = [d[0] for d in cur.description]
+            comps = [dict(zip(cols, r)) for r in rows]
+            results.append(f"found {len(comps)} competitions")
+        return {"status": "ok", "steps": results, "competitions": comps}
     except Exception as e:
-        return {"status": "error", "detail": str(e)}
+        return {"status": "error", "steps": results, "detail": str(e), "traceback": traceback.format_exc()}
