@@ -24,6 +24,7 @@ export const api = {
   // Auth
   login: (username, password) => request('POST', '/auth/login', { username, password }),
   register: (username, password) => request('POST', '/auth/register', { username, password }),
+  telegramAuth: (initData) => request('POST', '/auth/telegram', { initData }),
   getMyStats: () => request('GET', '/auth/me/stats'),
 
   // Competitions

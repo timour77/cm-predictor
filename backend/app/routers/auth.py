@@ -2,12 +2,16 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+import hmac
+import hashlib
+import json
+from urllib.parse import parse_qsl
 import bcrypt
 import jwt
 
-from app.models import LoginRequest, LoginResponse, RegisterRequest, UserStats
+from app.models import LoginRequest, LoginResponse, RegisterRequest, TelegramAuthRequest, UserStats
 from app.database import fetchone, execute
-from app.utils.config import SECRET_KEY, ALGORITHM, JWT_EXPIRATION_HOURS
+from app.utils.config import SECRET_KEY, ALGORITHM, JWT_EXPIRATION_HOURS, BOT_TOKEN
 
 router = APIRouter()
 security = HTTPBearer(auto_error=False)
@@ -118,7 +122,47 @@ def get_my_stats(current_user: dict = Depends(get_current_user)):
 @router.post("/login", response_model=LoginResponse)
 def login(body: LoginRequest):
     user = fetchone("SELECT * FROM users WHERE username = %s", (body.username,))
-    if not user or not verify_password(body.password, user["password"]):
+    if not user or not user.get("password") or not verify_password(body.password, user["password"]):
         raise HTTPException(401, "Invalid username or password")
     token = create_token(user["id"], user["username"])
     return LoginResponse(user_id=user["id"], token=token, username=user["username"])
+
+
+def _validate_telegram_init_data(init_data: str) -> dict:
+    parsed = dict(parse_qsl(init_data, keep_blank_values=True))
+    received_hash = parsed.pop("hash", "")
+    data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(parsed.items()))
+    secret_key = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
+    expected_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected_hash, received_hash):
+        raise ValueError("Invalid hash")
+    return json.loads(parsed["user"])
+
+
+@router.post("/telegram", response_model=LoginResponse)
+def telegram_auth(body: TelegramAuthRequest):
+    if not BOT_TOKEN:
+        raise HTTPException(500, "Telegram auth not configured")
+    try:
+        tg_user = _validate_telegram_init_data(body.initData)
+    except (ValueError, KeyError, json.JSONDecodeError):
+        raise HTTPException(401, "Invalid Telegram data")
+
+    tg_id = tg_user["id"]
+    tg_username = tg_user.get("username") or f"tg_{tg_id}"
+
+    user = fetchone("SELECT * FROM users WHERE telegram_id = %s", (tg_id,))
+    if user:
+        token = create_token(user["id"], user["username"])
+        return LoginResponse(user_id=user["id"], token=token, username=user["username"])
+
+    # Если username занят — используем tg_{id}
+    if fetchone("SELECT id FROM users WHERE username = %s", (tg_username,)):
+        tg_username = f"tg_{tg_id}"
+
+    user_id = execute(
+        "INSERT INTO users (username, telegram_id) VALUES (%s, %s) RETURNING id",
+        (tg_username, tg_id),
+    )
+    token = create_token(user_id, tg_username)
+    return LoginResponse(user_id=user_id, token=token, username=tg_username)

@@ -36,6 +36,9 @@ def admin_init_db():
             results.append("connected")
             cur.execute("SELECT 1")
             results.append("ping ok")
+            cur.execute("ALTER TABLE users ALTER COLUMN password DROP NOT NULL")
+            cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id) WHERE telegram_id IS NOT NULL")
+            results.append("migrations ok")
             cur.execute("""CREATE TABLE IF NOT EXISTS competitions (
                 id INTEGER PRIMARY KEY, name TEXT NOT NULL, code TEXT,
                 type TEXT, emblem TEXT, area TEXT, is_active INTEGER DEFAULT 1)""")

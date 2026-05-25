@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { LoginPage } from './pages/LoginPage'
 import { HomePage } from './pages/HomePage'
@@ -13,8 +13,22 @@ const TABS = [
 ]
 
 export default function App() {
-  const { user, login, register, logout } = useAuth()
+  const { user, login, register, telegramLogin, logout } = useAuth()
   const [tab, setTab] = useState('matches')
+  const [tgLoading, setTgLoading] = useState(() => !!window.Telegram?.WebApp?.initData)
+
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp
+    if (!tg?.initData) return
+    if (user) {
+      tg.ready()
+      tg.expand()
+      return
+    }
+    tg.ready()
+    tg.expand()
+    telegramLogin(tg.initData).finally(() => setTgLoading(false))
+  }, [])
 
   async function handleAuth(mode, username, password) {
     if (mode === 'login') return login(username, password)
@@ -24,6 +38,15 @@ export default function App() {
   function handleLogout() {
     logout()
     setTab('matches')
+  }
+
+  if (tgLoading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: 12 }}>
+        <div style={{ fontSize: 32 }}>⚽</div>
+        <div style={{ color: 'var(--text-secondary)' }}>Загрузка...</div>
+      </div>
+    )
   }
 
   if (!user) {

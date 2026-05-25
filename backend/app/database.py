@@ -9,10 +9,12 @@ SCHEMA_STATEMENTS = [
     """CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
+        password TEXT,
         telegram_id BIGINT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""",
+    "ALTER TABLE users ALTER COLUMN password DROP NOT NULL",
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id) WHERE telegram_id IS NOT NULL",
     """CREATE TABLE IF NOT EXISTS predictions (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id),

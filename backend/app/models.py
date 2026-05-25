@@ -7,6 +7,10 @@ class RegisterRequest(BaseModel):
     password: str
 
 
+class TelegramAuthRequest(BaseModel):
+    initData: str
+
+
 class LoginRequest(BaseModel):
     username: str
     password: str

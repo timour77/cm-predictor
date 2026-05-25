@@ -43,11 +43,28 @@ export function useAuth() {
     }
   }, [])
 
+  const telegramLogin = useCallback(async (initData) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await api.telegramAuth(initData)
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('user', JSON.stringify({ id: data.user_id, username: data.username }))
+      setUser({ id: data.user_id, username: data.username })
+      return true
+    } catch (e) {
+      setError(e.message)
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   const logout = useCallback(() => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     setUser(null)
   }, [])
 
-  return { user, loading, error, login, register, logout }
+  return { user, loading, error, login, register, telegramLogin, logout }
 }
