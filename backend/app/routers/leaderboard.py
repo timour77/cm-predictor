@@ -19,7 +19,7 @@ def _build_leaderboard(competition_id: Optional[int]) -> List[LeaderboardEntry]:
             FROM users u
             LEFT JOIN predictions p ON p.user_id = u.id AND p.competition_id = %s
             GROUP BY u.id, u.username
-            HAVING total_points > 0
+            HAVING COALESCE(SUM(p.points), 0) > 0
             ORDER BY total_points DESC
             LIMIT 100
             """,
@@ -35,7 +35,7 @@ def _build_leaderboard(competition_id: Optional[int]) -> List[LeaderboardEntry]:
             FROM users u
             LEFT JOIN predictions p ON p.user_id = u.id
             GROUP BY u.id, u.username
-            HAVING total_points > 0
+            HAVING COALESCE(SUM(p.points), 0) > 0
             ORDER BY total_points DESC
             LIMIT 100
             """,
