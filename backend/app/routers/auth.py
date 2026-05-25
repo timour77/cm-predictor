@@ -5,7 +5,7 @@ from typing import Optional
 import bcrypt
 import jwt
 
-from app.models import LoginRequest, LoginResponse, RegisterRequest
+from app.models import LoginRequest, LoginResponse, RegisterRequest, UserStats
 from app.database import fetchone, execute
 from app.utils.config import SECRET_KEY, ALGORITHM, JWT_EXPIRATION_HOURS
 
@@ -73,6 +73,46 @@ def register(body: RegisterRequest):
     )
     token = create_token(user_id, body.username)
     return LoginResponse(user_id=user_id, token=token, username=body.username)
+
+
+@router.get("/me/stats", response_model=UserStats)
+def get_my_stats(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+
+    row = fetchone(
+        """
+        SELECT u.created_at,
+               COUNT(p.id) as total_predictions,
+               COALESCE(SUM(p.points), 0) as total_points,
+               COALESCE(SUM(CASE WHEN p.points > 0 THEN 1 ELSE 0 END), 0) as correct_predictions
+        FROM users u
+        LEFT JOIN predictions p ON p.user_id = u.id
+        WHERE u.id = ?
+        GROUP BY u.id
+        """,
+        (user_id,),
+    )
+
+    rank_row = fetchone(
+        """
+        WITH ranked AS (
+            SELECT user_id, RANK() OVER (ORDER BY SUM(points) DESC) as rnk
+            FROM predictions
+            GROUP BY user_id
+            HAVING SUM(points) > 0
+        )
+        SELECT rnk FROM ranked WHERE user_id = ?
+        """,
+        (user_id,),
+    )
+
+    return UserStats(
+        created_at=row["created_at"] if row else None,
+        total_predictions=row["total_predictions"] if row else 0,
+        total_points=row["total_points"] if row else 0,
+        correct_predictions=row["correct_predictions"] if row else 0,
+        rank=rank_row["rnk"] if rank_row else None,
+    )
 
 
 @router.post("/login", response_model=LoginResponse)

@@ -59,6 +59,14 @@ class LeaderboardEntry(BaseModel):
     correct_scores: int
 
 
+class UserStats(BaseModel):
+    created_at: Optional[str]
+    total_predictions: int
+    total_points: int
+    correct_predictions: int
+    rank: Optional[int]
+
+
 class CompetitionResponse(BaseModel):
     id: int
     name: str
