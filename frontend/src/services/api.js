@@ -27,7 +27,7 @@ export const api = {
   getMyStats: () => request('GET', '/auth/me/stats'),
 
   // Competitions
-  getCompetitions: () => request('GET', '/competitions/'),
+  getCompetitions: () => request('GET', '/competitions'),
 
   // Matches
   getMatches: (competitionId, date, status) => {

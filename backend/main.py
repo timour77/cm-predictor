@@ -23,9 +23,23 @@ app.include_router(competitions.router, prefix="/api/competitions", tags=["compe
 
 @app.on_event("startup")
 def startup():
-    init_db()
+    try:
+        init_db()
+    except Exception as e:
+        print(f"[startup] init_db failed: {e}")
 
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.post("/api/admin/init-db")
+def admin_init_db():
+    try:
+        init_db()
+        from app.database import fetchall
+        comps = fetchall("SELECT id, name FROM competitions ORDER BY name")
+        return {"status": "ok", "competitions_count": len(comps), "competitions": comps}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}

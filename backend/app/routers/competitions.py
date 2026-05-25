@@ -6,7 +6,7 @@ from app.database import fetchall
 router = APIRouter()
 
 
-@router.get("/", response_model=List[CompetitionResponse])
+@router.get("", response_model=List[CompetitionResponse])
 def get_competitions():
     rows = fetchall(
         "SELECT id, name, code, type, emblem, area, is_active FROM competitions ORDER BY name"
