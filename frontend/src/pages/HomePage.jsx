@@ -7,7 +7,7 @@ function todayStr() {
   return new Date().toISOString().split('T')[0]
 }
 
-export function HomePage() {
+export function HomePage({ user }) {
   const [competitionId, setCompetitionId] = useState(
     () => Number(localStorage.getItem('competitionId')) || null
   )
@@ -87,6 +87,7 @@ export function HomePage() {
         <MatchCard
           key={match.external_id}
           match={match}
+          currentUserId={user?.id}
           onPredictionSaved={loadMatches}
         />
       ))}

@@ -122,3 +122,24 @@ def delete_prediction(prediction_id: int, current_user: dict = Depends(get_curre
         raise HTTPException(404, "Prediction not found")
     execute("DELETE FROM predictions WHERE id=%s", (prediction_id,))
     return {"success": True}
+
+
+@router.get("/match/{match_id}")
+def get_match_predictions(match_id: int, current_user: dict = Depends(get_current_user)):
+    rows = fetchall(
+        """SELECT p.outcome, p.predicted_score, p.points, u.username, u.id as user_id
+           FROM predictions p JOIN users u ON u.id = p.user_id
+           WHERE p.match_id = %s
+           ORDER BY p.points DESC NULLS LAST, u.username""",
+        (match_id,),
+    )
+    return [
+        {
+            "username": r["username"],
+            "user_id": r["user_id"],
+            "outcome": r["outcome"],
+            "predicted_score": r["predicted_score"],
+            "points": r["points"] or 0,
+        }
+        for r in rows
+    ]

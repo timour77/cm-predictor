@@ -62,13 +62,16 @@ function ScoreStepper({ value, onChange }) {
   )
 }
 
-export function MatchCard({ match, onPredictionSaved }) {
+export function MatchCard({ match, currentUserId, onPredictionSaved }) {
   const pred = match.user_prediction
   const [homeGoals, setHomeGoals] = useState(parseScore(pred?.predicted_score)[0])
   const [awayGoals, setAwayGoals] = useState(parseScore(pred?.predicted_score)[1])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [saved, setSaved] = useState(!!pred)
+  const [showPredictions, setShowPredictions] = useState(false)
+  const [allPredictions, setAllPredictions] = useState(null)
+  const [predLoading, setPredLoading] = useState(false)
 
   const outcome = calcOutcome(homeGoals, awayGoals)
   const predictedScore = `${homeGoals}-${awayGoals}`
@@ -91,6 +94,23 @@ export function MatchCard({ match, onPredictionSaved }) {
       setError(e.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function togglePredictions() {
+    if (allPredictions !== null) {
+      setShowPredictions(v => !v)
+      return
+    }
+    setPredLoading(true)
+    try {
+      const data = await api.getMatchPredictions(match.external_id)
+      setAllPredictions(data)
+      setShowPredictions(true)
+    } catch {
+      // silently ignore
+    } finally {
+      setPredLoading(false)
     }
   }
 
@@ -176,6 +196,42 @@ export function MatchCard({ match, onPredictionSaved }) {
           </div>
           <span className="points-badge">+{pred.points} pts</span>
         </div>
+      )}
+
+      {/* Predictions toggle — only for live/finished matches */}
+      {!isScheduled(match.status) && (
+        <>
+          <button className="predictions-toggle" onClick={togglePredictions}>
+            <span>Прогнозы участников</span>
+            <span>{predLoading ? '...' : showPredictions ? '▲' : '▼'}</span>
+          </button>
+
+          {showPredictions && allPredictions && (
+            <div className="predictions-list">
+              {allPredictions.length === 0 ? (
+                <div className="predictions-empty">Нет прогнозов</div>
+              ) : allPredictions.map(p => (
+                <div
+                  key={p.user_id}
+                  className={`prediction-row${p.user_id === currentUserId ? ' me' : ''}`}
+                >
+                  <span className="prediction-row-name">{p.username}</span>
+                  <div className="prediction-row-right">
+                    {p.predicted_score && (
+                      <span className="chip">{p.predicted_score}</span>
+                    )}
+                    {p.outcome && (
+                      <span className={`prediction-badge outcome-${p.outcome}`}>{p.outcome}</span>
+                    )}
+                    {isFinished(match.status) && (
+                      <span className="points-badge">+{p.points}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   )
