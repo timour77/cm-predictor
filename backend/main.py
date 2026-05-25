@@ -1,7 +1,6 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.database import init_db
 from app.routers import auth, matches, predictions, leaderboard, competitions
 
 app = FastAPI(title="CM Predictor API", version="1.0.0")
@@ -21,30 +20,16 @@ app.include_router(leaderboard.router, prefix="/api/leaderboard", tags=["leaderb
 app.include_router(competitions.router, prefix="/api/competitions", tags=["competitions"])
 
 
-@app.on_event("startup")
-def startup():
-    try:
-        init_db()
-    except Exception as e:
-        print(f"[startup] init_db failed: {e}")
-
-
-@app.get("/health")
+@app.get("/api/health")
 def health():
     return {"status": "ok"}
 
 
-@app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
-def catch_all(path: str, request: Request):
-    routes = [r.path for r in app.routes if hasattr(r, "path")]
-    return {"received_path": request.url.path, "registered_routes": routes}
-
-
 @app.post("/api/admin/init-db")
 def admin_init_db():
+    from app.database import init_db, fetchall
     try:
         init_db()
-        from app.database import fetchall
         comps = fetchall("SELECT id, name FROM competitions ORDER BY name")
         return {"status": "ok", "competitions_count": len(comps), "competitions": comps}
     except Exception as e:
