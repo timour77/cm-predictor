@@ -138,6 +138,13 @@ def fetchall(query: str, params: tuple = ()) -> list:
         return [dict(zip(cols, row)) for row in cur.fetchall()]
 
 
+def executemany(query: str, params_list: list):
+    with get_conn() as conn:
+        cur = conn.cursor()
+        for params in params_list:
+            cur.execute(query, params)
+
+
 def execute(query: str, params: tuple = ()) -> Optional[int]:
     with get_conn() as conn:
         cur = conn.cursor()

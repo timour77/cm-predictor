@@ -4,7 +4,7 @@ from datetime import date
 
 from app.models import MatchResponse, PredictionResponse
 from app.services.football_api import get_matches
-from app.database import fetchone
+from app.database import fetchone, executemany
 from app.routers.auth import get_optional_user
 
 router = APIRouter()
@@ -31,6 +31,23 @@ def list_matches(
         )
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
+
+    executemany(
+        """INSERT INTO match_results
+               (external_match_id, competition_id, home_team, away_team,
+                home_goals, away_goals, match_date, status)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+           ON CONFLICT (external_match_id) DO UPDATE SET
+               home_goals = EXCLUDED.home_goals,
+               away_goals = EXCLUDED.away_goals,
+               status = EXCLUDED.status,
+               updated_at = CURRENT_TIMESTAMP""",
+        [
+            (m["external_id"], m["competition_id"], m["home_team"], m["away_team"],
+             m.get("home_goals"), m.get("away_goals"), m["match_date"], m["status"])
+            for m in matches
+        ],
+    )
 
     result = []
     for m in matches:
