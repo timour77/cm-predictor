@@ -1,5 +1,6 @@
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import pg8000.dbapi
+import ssl
+from urllib.parse import urlparse
 from contextlib import contextmanager
 from typing import Optional
 from app.utils.config import DATABASE_URL
@@ -66,10 +67,22 @@ DEFAULT_COMPETITIONS = [
 ]
 
 
+def _connect():
+    url = urlparse(DATABASE_URL.replace("postgres://", "postgresql://", 1))
+    ssl_ctx = ssl.create_default_context()
+    return pg8000.dbapi.connect(
+        host=url.hostname,
+        user=url.username,
+        password=url.password,
+        database=url.path.lstrip("/"),
+        port=url.port or 5432,
+        ssl_context=ssl_ctx,
+    )
+
+
 @contextmanager
 def get_conn():
-    url = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    conn = psycopg2.connect(url)
+    conn = _connect()
     try:
         yield conn
         conn.commit()
@@ -80,38 +93,48 @@ def get_conn():
         conn.close()
 
 
+def _to_dict(cursor, row):
+    if row is None or cursor.description is None:
+        return None
+    cols = [d[0] for d in cursor.description]
+    return dict(zip(cols, row))
+
+
 def init_db():
     with get_conn() as conn:
-        with conn.cursor() as cur:
-            for stmt in SCHEMA_STATEMENTS:
-                cur.execute(stmt)
-            for comp in DEFAULT_COMPETITIONS:
-                cur.execute(
-                    """INSERT INTO competitions (id, name, code, type, emblem, area, is_active)
-                       VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING""",
-                    comp,
-                )
+        cur = conn.cursor()
+        for stmt in SCHEMA_STATEMENTS:
+            cur.execute(stmt)
+        for comp in DEFAULT_COMPETITIONS:
+            cur.execute(
+                """INSERT INTO competitions (id, name, code, type, emblem, area, is_active)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING""",
+                comp,
+            )
 
 
 def fetchone(query: str, params: tuple = ()):
     with get_conn() as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(query, params)
-            return cur.fetchone()
+        cur = conn.cursor()
+        cur.execute(query, params or None)
+        return _to_dict(cur, cur.fetchone())
 
 
 def fetchall(query: str, params: tuple = ()) -> list:
     with get_conn() as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(query, params)
-            return cur.fetchall()
+        cur = conn.cursor()
+        cur.execute(query, params or None)
+        if cur.description is None:
+            return []
+        cols = [d[0] for d in cur.description]
+        return [dict(zip(cols, row)) for row in cur.fetchall()]
 
 
 def execute(query: str, params: tuple = ()) -> Optional[int]:
     with get_conn() as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(query, params)
-            if cur.description:
-                row = cur.fetchone()
-                return row["id"] if row else None
-            return None
+        cur = conn.cursor()
+        cur.execute(query, params or None)
+        if cur.description:
+            row = cur.fetchone()
+            return row[0] if row else None
+        return None
