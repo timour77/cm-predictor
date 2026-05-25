@@ -53,7 +53,7 @@ def _build_leaderboard(competition_id: Optional[int]) -> List[LeaderboardEntry]:
     ]
 
 
-@router.get("/", response_model=List[LeaderboardEntry])
+@router.get("", response_model=List[LeaderboardEntry])
 def get_leaderboard(competition_id: Optional[int] = Query(None)):
     return _build_leaderboard(competition_id)
 

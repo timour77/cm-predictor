@@ -34,24 +34,24 @@ export const api = {
     const params = new URLSearchParams({ competition_id: competitionId })
     if (date) params.set('date', date)
     if (status) params.set('status', status)
-    return request('GET', `/matches/?${params}`)
+    return request('GET', `/matches?${params}`)
   },
 
   // Predictions
   savePrediction: (matchId, competitionId, outcome, predictedScore) =>
-    request('POST', '/predictions/', { match_id: matchId, competition_id: competitionId, outcome, predicted_score: predictedScore }),
+    request('POST', '/predictions', { match_id: matchId, competition_id: competitionId, outcome, predicted_score: predictedScore }),
   updatePrediction: (id, matchId, competitionId, outcome, predictedScore) =>
     request('PUT', `/predictions/${id}`, { match_id: matchId, competition_id: competitionId, outcome, predicted_score: predictedScore }),
   deletePrediction: (id) => request('DELETE', `/predictions/${id}`),
   getMyPredictions: (competitionId) => {
     const params = competitionId ? `?competition_id=${competitionId}` : ''
-    return request('GET', `/predictions/${params}`)
+    return request('GET', `/predictions${params}`)
   },
 
   // Leaderboard
   getLeaderboard: (competitionId) => {
     const params = competitionId ? `?competition_id=${competitionId}` : ''
-    return request('GET', `/leaderboard/${params}`)
+    return request('GET', `/leaderboard${params}`)
   },
   getMyPosition: (competitionId) => {
     const params = competitionId ? `?competition_id=${competitionId}` : ''

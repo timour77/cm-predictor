@@ -28,7 +28,7 @@ def _recalculate_and_update(prediction_id: int):
         execute("UPDATE predictions SET points=%s WHERE id=%s", (pts, prediction_id))
 
 
-@router.post("/", response_model=PredictionResponse)
+@router.post("", response_model=PredictionResponse)
 def save_prediction(body: PredictionRequest, current_user: dict = Depends(get_current_user)):
     existing = fetchone(
         "SELECT id FROM predictions WHERE user_id=%s AND match_id=%s",
@@ -59,7 +59,7 @@ def save_prediction(body: PredictionRequest, current_user: dict = Depends(get_cu
     )
 
 
-@router.get("/", response_model=List[PredictionResponse])
+@router.get("", response_model=List[PredictionResponse])
 def get_my_predictions(
     competition_id: Optional[int] = Query(None),
     current_user: dict = Depends(get_current_user),

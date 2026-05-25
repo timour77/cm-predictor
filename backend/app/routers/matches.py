@@ -10,7 +10,7 @@ from app.routers.auth import get_optional_user
 router = APIRouter()
 
 
-@router.get("/", response_model=List[MatchResponse])
+@router.get("", response_model=List[MatchResponse])
 def list_matches(
     competition_id: int = Query(...),
     date: Optional[str] = Query(None),      # "2026-06-11"
