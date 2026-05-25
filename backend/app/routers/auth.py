@@ -81,14 +81,14 @@ def get_my_stats(current_user: dict = Depends(get_current_user)):
 
     row = fetchone(
         """
-        SELECT u.created_at,
+        SELECT u.created_at::text as created_at,
                COUNT(p.id) as total_predictions,
                COALESCE(SUM(p.points), 0) as total_points,
                COALESCE(SUM(CASE WHEN p.points > 0 THEN 1 ELSE 0 END), 0) as correct_predictions
         FROM users u
         LEFT JOIN predictions p ON p.user_id = u.id
         WHERE u.id = %s
-        GROUP BY u.id
+        GROUP BY u.id, u.created_at
         """,
         (user_id,),
     )
