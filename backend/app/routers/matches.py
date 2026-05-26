@@ -4,7 +4,8 @@ from datetime import date
 
 from app.models import MatchResponse, PredictionResponse
 from app.services.football_api import get_matches
-from app.database import fetchone, executemany
+from app.services.scoring import calculate_points
+from app.database import fetchone, fetchall, execute, executemany
 from app.routers.auth import get_optional_user
 
 router = APIRouter()
@@ -48,6 +49,26 @@ def list_matches(
             for m in matches
         ],
     )
+
+    finished = [
+        m for m in matches
+        if m["status"] == "FINISHED"
+        and m.get("home_goals") is not None
+        and m.get("away_goals") is not None
+    ]
+    for m in finished:
+        preds = fetchall(
+            "SELECT id, outcome, predicted_score FROM predictions WHERE match_id=%s",
+            (m["external_id"],),
+        )
+        for pred in preds:
+            pts = calculate_points(
+                pred["outcome"],
+                pred["predicted_score"],
+                m["home_goals"],
+                m["away_goals"],
+            )
+            execute("UPDATE predictions SET points=%s WHERE id=%s", (pts, pred["id"]))
 
     result = []
     for m in matches:

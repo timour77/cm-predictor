@@ -26,6 +26,40 @@ def health():
     return {"status": "ok"}
 
 
+@app.post("/api/admin/recalculate-scores")
+def admin_recalculate_scores():
+    import traceback
+    from app.database import get_conn
+    from app.services.scoring import calculate_points
+    updated = 0
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """SELECT p.id, p.outcome, p.predicted_score,
+                          mr.home_goals, mr.away_goals
+                   FROM predictions p
+                   JOIN match_results mr ON mr.external_match_id = p.match_id
+                   WHERE mr.status = 'FINISHED'
+                     AND mr.home_goals IS NOT NULL
+                     AND mr.away_goals IS NOT NULL"""
+            )
+            cols = [d[0] for d in cur.description]
+            rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+            for row in rows:
+                pts = calculate_points(
+                    row["outcome"],
+                    row["predicted_score"],
+                    row["home_goals"],
+                    row["away_goals"],
+                )
+                cur.execute("UPDATE predictions SET points=%s WHERE id=%s", (pts, row["id"]))
+                updated += 1
+        return {"status": "ok", "updated": updated}
+    except Exception as e:
+        return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
+
+
 @app.post("/api/admin/init-db")
 def admin_init_db():
     import traceback
