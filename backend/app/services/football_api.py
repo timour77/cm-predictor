@@ -71,6 +71,31 @@ def get_matches(
     return result
 
 
+def get_matches_today(date_str: str) -> List[Dict]:
+    params = {"dateFrom": date_str, "dateTo": date_str}
+    data = _cached_get(f"{BASE_URL}/matches", params)
+    result = []
+    for m in data.get("matches", []):
+        score = m.get("score", {})
+        full_time = score.get("fullTime", {})
+        competition = m.get("competition", {})
+        result.append({
+            "external_id": m["id"],
+            "competition_id": competition.get("id"),
+            "competition_name": competition.get("name"),
+            "home_team": m["homeTeam"]["name"],
+            "away_team": m["awayTeam"]["name"],
+            "home_team_crest": m["homeTeam"].get("crest"),
+            "away_team_crest": m["awayTeam"].get("crest"),
+            "match_date": m["utcDate"],
+            "status": m["status"],
+            "home_goals": full_time.get("home"),
+            "away_goals": full_time.get("away"),
+            "matchday": m.get("matchday"),
+        })
+    return result
+
+
 def get_competitions() -> List[Dict]:
     data = _cached_get(f"{BASE_URL}/competitions")
     return [

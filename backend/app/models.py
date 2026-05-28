@@ -41,6 +41,7 @@ class PredictionResponse(BaseModel):
 class MatchResponse(BaseModel):
     external_id: int
     competition_id: int
+    competition_name: Optional[str] = None
     home_team: str
     away_team: str
     home_team_crest: Optional[str]

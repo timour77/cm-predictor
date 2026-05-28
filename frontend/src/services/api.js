@@ -37,6 +37,10 @@ export const api = {
     if (status) params.set('status', status)
     return request('GET', `/matches?${params}`)
   },
+  getTodayMatches: (date) => {
+    const params = date ? `?date=${date}` : ''
+    return request('GET', `/matches/today${params}`)
+  },
 
   // Predictions
   savePrediction: (matchId, competitionId, outcome, predictedScore) =>
