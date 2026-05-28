@@ -23,10 +23,6 @@ export default function App() {
     if (!tg?.initData) return
     tg.ready()
     tg.expand()
-    if (user) {
-      setTgLoading(false)
-      return
-    }
     telegramLogin(tg.initData).finally(() => setTgLoading(false))
   }, [])
 
