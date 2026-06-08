@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { LeaderboardTable } from '../components/LeaderboardTable'
 import { api } from '../services/api'
 
-const WORLD_CUP_ID = 3
+const WORLD_CUP_ID = 2000
 
 export function LeaderboardPage({ user }) {
   const [entries, setEntries] = useState([])

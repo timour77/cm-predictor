@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { MatchCard } from '../components/MatchCard'
 import { api } from '../services/api'
 
-const WORLD_CUP_ID = 3
+const WORLD_CUP_ID = 2000
 
 function todayStr() {
   return new Date().toISOString().split('T')[0]
