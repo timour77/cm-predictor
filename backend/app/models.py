@@ -20,6 +20,7 @@ class LoginResponse(BaseModel):
     user_id: int
     token: str
     username: str
+    photo_url: Optional[str] = None
 
 
 class PredictionRequest(BaseModel):
@@ -85,6 +86,7 @@ class CompetitionResponse(BaseModel):
 class UserListEntry(BaseModel):
     id: int
     username: str
+    photo_url: Optional[str] = None
     total_predictions: int
     total_points: int
     correct_predictions: int

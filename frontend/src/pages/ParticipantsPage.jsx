@@ -89,7 +89,18 @@ function PredictionHistoryItem({ p }) {
   )
 }
 
-function UserDetail({ userId, username, currentUserId, onBack }) {
+function Avatar({ photoUrl, username, size = 36 }) {
+  if (photoUrl) {
+    return <img src={photoUrl} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+  }
+  return (
+    <div style={{ width: size, height: size, borderRadius: '50%', background: 'var(--primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: size * 0.4, flexShrink: 0 }}>
+      {username[0].toUpperCase()}
+    </div>
+  )
+}
+
+function UserDetail({ userId, username, photoUrl, currentUserId, onBack }) {
   const [stats, setStats] = useState(null)
   const [predictions, setPredictions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -110,7 +121,8 @@ function UserDetail({ userId, username, currentUserId, onBack }) {
     <div className="page">
       <div className="user-detail-header">
         <button className="btn btn-ghost btn-sm" onClick={onBack}>← Назад</button>
-        <div className="user-detail-name">
+        <div className="user-detail-name" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Avatar photoUrl={photoUrl} username={username} size={32} />
           {username}
           {isMe && <span className="me-tag">Я</span>}
         </div>
@@ -165,6 +177,7 @@ export function ParticipantsPage({ user }) {
       <UserDetail
         userId={selectedUser.id}
         username={selectedUser.username}
+        photoUrl={selectedUser.photo_url}
         currentUserId={user?.id}
         onBack={() => setSelectedUser(null)}
       />
@@ -193,6 +206,7 @@ export function ParticipantsPage({ user }) {
               onClick={() => setSelectedUser(u)}
             >
               <span className="participant-rank">{i + 1}</span>
+              <Avatar photoUrl={u.photo_url} username={u.username} size={32} />
               <span className="participant-name">
                 {u.username}
                 {u.id === user?.id && <span className="me-tag">Я</span>}

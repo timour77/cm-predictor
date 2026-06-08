@@ -150,19 +150,24 @@ def telegram_auth(body: TelegramAuthRequest):
 
     tg_id = tg_user["id"]
     tg_username = tg_user.get("username") or f"tg_{tg_id}"
+    photo_url = tg_user.get("photo_url")
 
     user = fetchone("SELECT * FROM users WHERE telegram_id = %s", (tg_id,))
     if user:
+        execute(
+            "UPDATE users SET photo_url = %s WHERE id = %s",
+            (photo_url, user["id"]),
+        )
         token = create_token(user["id"], user["username"])
-        return LoginResponse(user_id=user["id"], token=token, username=user["username"])
+        return LoginResponse(user_id=user["id"], token=token, username=user["username"], photo_url=photo_url)
 
     # Если username занят — используем tg_{id}
     if fetchone("SELECT id FROM users WHERE username = %s", (tg_username,)):
         tg_username = f"tg_{tg_id}"
 
     user_id = execute(
-        "INSERT INTO users (username, telegram_id) VALUES (%s, %s) RETURNING id",
-        (tg_username, tg_id),
+        "INSERT INTO users (username, telegram_id, photo_url) VALUES (%s, %s, %s) RETURNING id",
+        (tg_username, tg_id, photo_url),
     )
     token = create_token(user_id, tg_username)
-    return LoginResponse(user_id=user_id, token=token, username=tg_username)
+    return LoginResponse(user_id=user_id, token=token, username=tg_username, photo_url=photo_url)

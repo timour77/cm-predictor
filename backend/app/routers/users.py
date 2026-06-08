@@ -12,13 +12,13 @@ router = APIRouter()
 def list_users(current_user: dict = Depends(get_current_user)):
     rows = fetchall(
         """
-        SELECT u.id, u.username,
+        SELECT u.id, u.username, u.photo_url,
                COUNT(p.id) as total_predictions,
                COALESCE(SUM(p.points), 0) as total_points,
                COALESCE(SUM(CASE WHEN p.points > 0 THEN 1 ELSE 0 END), 0) as correct_predictions
         FROM users u
         LEFT JOIN predictions p ON p.user_id = u.id
-        GROUP BY u.id, u.username
+        GROUP BY u.id, u.username, u.photo_url
         ORDER BY total_points DESC, u.username
         """,
     )
@@ -26,6 +26,7 @@ def list_users(current_user: dict = Depends(get_current_user)):
         UserListEntry(
             id=r["id"],
             username=r["username"],
+            photo_url=r.get("photo_url"),
             total_predictions=r["total_predictions"],
             total_points=r["total_points"],
             correct_predictions=r["correct_predictions"],

@@ -38,18 +38,12 @@ export function ProfilePage({ user, onLogout }) {
         textAlign: 'center',
         color: 'white'
       }}>
-        <div style={{
-          width: '64px',
-          height: '64px',
-          borderRadius: '50%',
-          background: 'rgba(255,255,255,0.2)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '32px',
-          margin: '0 auto 12px',
-          border: '3px solid white'
-        }}>👤</div>
+        {user.photo_url
+          ? <img src={user.photo_url} alt="" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', margin: '0 auto 12px', border: '3px solid white', display: 'block' }} />
+          : <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, margin: '0 auto 12px', border: '3px solid white' }}>
+              {user.username[0].toUpperCase()}
+            </div>
+        }
         <div style={{ fontSize: '20px', fontWeight: '700', marginBottom: '4px' }}>{user.username}</div>
         <div style={{ fontSize: '12px', opacity: 0.9 }}>
           {loading ? '…' : `В игре с ${formatJoinDate(stats?.created_at)}`}

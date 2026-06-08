@@ -3,8 +3,10 @@ import { api } from '../services/api'
 
 export function useAuth() {
   const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem('user')
-    return stored ? JSON.parse(stored) : null
+    try {
+      const stored = localStorage.getItem('user')
+      return stored ? JSON.parse(stored) : null
+    } catch { return null }
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -15,8 +17,8 @@ export function useAuth() {
     try {
       const data = await api.login(username, password)
       localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify({ id: data.user_id, username: data.username }))
-      setUser({ id: data.user_id, username: data.username })
+      localStorage.setItem('user', JSON.stringify({ id: data.user_id, username: data.username, photo_url: data.photo_url || null }))
+      setUser({ id: data.user_id, username: data.username, photo_url: data.photo_url || null })
       return true
     } catch (e) {
       setError(e.message)
@@ -32,8 +34,8 @@ export function useAuth() {
     try {
       const data = await api.register(username, password)
       localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify({ id: data.user_id, username: data.username }))
-      setUser({ id: data.user_id, username: data.username })
+      localStorage.setItem('user', JSON.stringify({ id: data.user_id, username: data.username, photo_url: data.photo_url || null }))
+      setUser({ id: data.user_id, username: data.username, photo_url: data.photo_url || null })
       return true
     } catch (e) {
       setError(e.message)
@@ -49,8 +51,8 @@ export function useAuth() {
     try {
       const data = await api.telegramAuth(initData)
       localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify({ id: data.user_id, username: data.username }))
-      setUser({ id: data.user_id, username: data.username })
+      localStorage.setItem('user', JSON.stringify({ id: data.user_id, username: data.username, photo_url: data.photo_url || null }))
+      setUser({ id: data.user_id, username: data.username, photo_url: data.photo_url || null })
       return true
     } catch (e) {
       setError(e.message)
