@@ -27,9 +27,6 @@ export const api = {
   telegramAuth: (initData) => request('POST', '/auth/telegram', { initData }),
   getMyStats: () => request('GET', '/auth/me/stats'),
 
-  // Competitions
-  getCompetitions: () => request('GET', '/competitions'),
-
   // Matches
   getMatches: (competitionId, date, status) => {
     const params = new URLSearchParams({ competition_id: competitionId })
@@ -37,11 +34,6 @@ export const api = {
     if (status) params.set('status', status)
     return request('GET', `/matches?${params}`)
   },
-  getTodayMatches: (date) => {
-    const params = date ? `?date=${date}` : ''
-    return request('GET', `/matches/today${params}`)
-  },
-
   // Predictions
   savePrediction: (matchId, competitionId, outcome, predictedScore) =>
     request('POST', '/predictions', { match_id: matchId, competition_id: competitionId, outcome, predicted_score: predictedScore }),

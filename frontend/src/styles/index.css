@@ -64,10 +64,6 @@ body {
 .btn-ghost:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
 .btn-sm { padding: 6px 12px; font-size: 13px; }
 .btn-block { width: 100%; }
-.btn-today { width: 100%; background: transparent; color: var(--text-secondary); border: 1.5px solid var(--border); font-weight: 600; font-size: 14px; }
-.btn-today:hover { border-color: var(--primary); color: var(--primary); }
-.btn-today.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-.today-competition-header { padding: 10px 16px 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
 
 /* Inputs */
 .input {
