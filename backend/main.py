@@ -75,6 +75,7 @@ def admin_init_db():
             cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id) WHERE telegram_id IS NOT NULL")
             cur.execute("ALTER TABLE predictions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP")
             cur.execute("ALTER TABLE predictions ADD COLUMN IF NOT EXISTS edit_count INTEGER DEFAULT 0")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url TEXT")
             results.append("migrations ok")
             cur.execute("""CREATE TABLE IF NOT EXISTS competitions (
                 id INTEGER PRIMARY KEY, name TEXT NOT NULL, code TEXT,
