@@ -15,7 +15,7 @@ def _build_leaderboard(competition_id: Optional[int]) -> List[LeaderboardEntry]:
             SELECT u.id as user_id, u.username,
                    COALESCE(SUM(p.points), 0) as total_points,
                    COALESCE(SUM(CASE WHEN p.points > 0 THEN 1 ELSE 0 END), 0) as correct_outcomes,
-                   COALESCE(SUM(CASE WHEN p.points >= 4 THEN 1 ELSE 0 END), 0) as correct_scores
+                   COALESCE(SUM(CASE WHEN p.points >= 3 THEN 1 ELSE 0 END), 0) as correct_scores
             FROM users u
             LEFT JOIN predictions p ON p.user_id = u.id AND p.competition_id = %s
             GROUP BY u.id, u.username
@@ -31,7 +31,7 @@ def _build_leaderboard(competition_id: Optional[int]) -> List[LeaderboardEntry]:
             SELECT u.id as user_id, u.username,
                    COALESCE(SUM(p.points), 0) as total_points,
                    COALESCE(SUM(CASE WHEN p.points > 0 THEN 1 ELSE 0 END), 0) as correct_outcomes,
-                   COALESCE(SUM(CASE WHEN p.points >= 4 THEN 1 ELSE 0 END), 0) as correct_scores
+                   COALESCE(SUM(CASE WHEN p.points >= 3 THEN 1 ELSE 0 END), 0) as correct_scores
             FROM users u
             LEFT JOIN predictions p ON p.user_id = u.id
             GROUP BY u.id, u.username

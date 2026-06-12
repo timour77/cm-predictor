@@ -18,11 +18,10 @@ def calculate_points(
     points = 0
     actual_result = get_result(home_goals, away_goals)
 
-    if outcome and outcome == actual_result:
-        points += 1
-
     actual_score = f"{home_goals}-{away_goals}"
     if predicted_score and predicted_score == actual_score:
         points += 3
+    elif outcome and outcome == actual_result:
+        points += 1
 
     return points
