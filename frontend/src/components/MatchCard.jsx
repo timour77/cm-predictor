@@ -157,6 +157,9 @@ export function MatchCard({ match, currentUserId, onPredictionSaved }) {
           {statusLabel}
         </span>
       </div>
+      {match.venue && (
+        <div className="match-venue">{match.venue}</div>
+      )}
 
       <div className="match-teams">
         <div className="team">
