@@ -60,6 +60,23 @@ def admin_recalculate_scores():
         return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
 
 
+@app.get("/api/admin/bot-prediction-logs")
+def admin_bot_prediction_logs(competition_id: int = None, limit: int = 50):
+    from app.database import fetchall
+    if competition_id:
+        rows = fetchall(
+            """SELECT * FROM bot_prediction_logs WHERE competition_id=%s
+               ORDER BY created_at DESC LIMIT %s""",
+            (competition_id, limit),
+        )
+    else:
+        rows = fetchall(
+            "SELECT * FROM bot_prediction_logs ORDER BY created_at DESC LIMIT %s",
+            (limit,),
+        )
+    return rows
+
+
 @app.post("/api/admin/generate-bot-predictions")
 def admin_generate_bot_predictions(competition_id: int):
     import traceback
@@ -92,6 +109,23 @@ def admin_init_db():
             cur.execute("ALTER TABLE predictions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP")
             cur.execute("ALTER TABLE predictions ADD COLUMN IF NOT EXISTS edit_count INTEGER DEFAULT 0")
             cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url TEXT")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_bot BOOLEAN DEFAULT FALSE")
+            cur.execute("""CREATE TABLE IF NOT EXISTS bot_prediction_logs (
+                id SERIAL PRIMARY KEY,
+                match_id INTEGER NOT NULL,
+                competition_id INTEGER NOT NULL,
+                home_team TEXT NOT NULL,
+                away_team TEXT NOT NULL,
+                match_date TEXT,
+                standings TEXT,
+                odds TEXT,
+                home_form TEXT,
+                away_form TEXT,
+                outcome TEXT,
+                predicted_score TEXT,
+                reasoning TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )""")
             results.append("migrations ok")
             cur.execute("""CREATE TABLE IF NOT EXISTS competitions (
                 id INTEGER PRIMARY KEY, name TEXT NOT NULL, code TEXT,

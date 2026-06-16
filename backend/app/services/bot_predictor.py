@@ -181,7 +181,7 @@ def run_bot_predictions(competition_id: int, competition_name: str, matches: lis
     form = fetch_recent_form(competition_id)
     odds_events = fetch_all_odds(competition_id)  # single API call for all matches
 
-    results = {"generated": 0, "skipped": 0, "errors": []}
+    results = {"generated": 0, "skipped": 0, "errors": [], "predictions": []}
 
     for match in matches:
         if match.get("status") not in ("SCHEDULED", "TIMED"):
@@ -197,11 +197,16 @@ def run_bot_predictions(competition_id: int, competition_name: str, matches: lis
             results["skipped"] += 1
             continue
 
+        home_team = match["home_team"]
+        away_team = match["away_team"]
         try:
-            odds_text = find_odds_for_match(odds_events, match["home_team"], match["away_team"])
+            odds_text = find_odds_for_match(odds_events, home_team, away_team)
+            home_form = " ".join(form.get(home_team, [])) or "unknown"
+            away_form = " ".join(form.get(away_team, [])) or "unknown"
+
             pred = generate_prediction(
-                home_team=match["home_team"],
-                away_team=match["away_team"],
+                home_team=home_team,
+                away_team=away_team,
                 competition_name=competition_name,
                 match_date=match["match_date"],
                 standings=standings,
@@ -215,8 +220,28 @@ def run_bot_predictions(competition_id: int, competition_name: str, matches: lis
                    ON CONFLICT (user_id, match_id) DO NOTHING""",
                 (bot_user_id, match_id, competition_id, pred["outcome"], pred["predicted_score"]),
             )
+            execute(
+                """INSERT INTO bot_prediction_logs
+                   (match_id, competition_id, home_team, away_team, match_date,
+                    standings, odds, home_form, away_form, outcome, predicted_score, reasoning)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                (
+                    match_id, competition_id, home_team, away_team, match["match_date"],
+                    standings, odds_text or "not available",
+                    home_form, away_form,
+                    pred["outcome"], pred["predicted_score"], pred.get("reasoning", ""),
+                ),
+            )
             results["generated"] += 1
+            results["predictions"].append({
+                "match": f"{home_team} vs {away_team}",
+                "date": match["match_date"][:10],
+                "outcome": pred["outcome"],
+                "score": pred["predicted_score"],
+                "reasoning": pred.get("reasoning", ""),
+                "odds": odds_text or "not available",
+            })
         except Exception as e:
-            results["errors"].append(f"match {match_id} ({match['home_team']} vs {match['away_team']}): {e}")
+            results["errors"].append(f"match {match_id} ({home_team} vs {away_team}): {e}")
 
     return results
