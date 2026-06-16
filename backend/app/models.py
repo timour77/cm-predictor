@@ -63,6 +63,7 @@ class LeaderboardEntry(BaseModel):
     total_points: int
     correct_outcomes: int
     correct_scores: int
+    is_bot: bool = False
 
 
 class UserStats(BaseModel):

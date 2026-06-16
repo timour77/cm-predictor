@@ -29,7 +29,7 @@ export function LeaderboardTable({ entries, currentUserId }) {
                 <span className={`rank-badge ${rankClass}`}>{e.rank}</span>
               </td>
               <td style={{ fontWeight: isMe ? 700 : 400 }}>
-                {isMe ? '👤 ' : ''}{e.username}
+                {e.is_bot ? '🤖 ' : isMe ? '👤 ' : ''}{e.username}
               </td>
               <td style={{ fontWeight: 700, color: 'var(--yellow)' }}>{e.total_points}</td>
               <td style={{ color: 'var(--green)' }}>{e.correct_outcomes}</td>

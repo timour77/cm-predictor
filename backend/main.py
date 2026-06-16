@@ -60,6 +60,22 @@ def admin_recalculate_scores():
         return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
 
 
+@app.post("/api/admin/generate-bot-predictions")
+def admin_generate_bot_predictions(competition_id: int):
+    import traceback
+    from app.database import fetchone as db_fetchone
+    from app.services.football_api import get_matches
+    from app.services.bot_predictor import run_bot_predictions
+    try:
+        comp = db_fetchone("SELECT name FROM competitions WHERE id=%s", (competition_id,))
+        competition_name = comp["name"] if comp else f"Competition {competition_id}"
+        matches = get_matches(competition_id)
+        result = run_bot_predictions(competition_id, competition_name, matches)
+        return {"status": "ok", "competition": competition_name, **result}
+    except Exception as e:
+        return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
+
+
 @app.post("/api/admin/init-db")
 def admin_init_db():
     import traceback

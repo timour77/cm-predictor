@@ -253,7 +253,7 @@ export function MatchCard({ match, currentUserId, onPredictionSaved }) {
             >
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <span className="prediction-row-name">{p.username}</span>
+                  <span className="prediction-row-name">{p.is_bot ? '🤖 ' : ''}{p.username}</span>
                   {isFinished(match.status) && (
                     <span className="points-badge">+{p.points}</span>
                   )}

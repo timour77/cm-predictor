@@ -129,6 +129,7 @@ def delete_prediction(prediction_id: int, current_user: dict = Depends(get_curre
 def get_match_predictions(match_id: int, current_user: dict = Depends(get_current_user)):
     rows = fetchall(
         """SELECT p.outcome, p.predicted_score, p.points, u.username, u.id as user_id,
+                  COALESCE(u.is_bot, FALSE) as is_bot,
                   p.updated_at::text as updated_at, COALESCE(p.edit_count, 0) as edit_count
            FROM predictions p JOIN users u ON u.id = p.user_id
            WHERE p.match_id = %s
@@ -139,6 +140,7 @@ def get_match_predictions(match_id: int, current_user: dict = Depends(get_curren
         {
             "username": r["username"],
             "user_id": r["user_id"],
+            "is_bot": bool(r.get("is_bot", False)),
             "outcome": r["outcome"],
             "predicted_score": r["predicted_score"],
             "points": r["points"] or 0,

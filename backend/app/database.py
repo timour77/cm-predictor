@@ -48,6 +48,7 @@ SCHEMA_STATEMENTS = [
         is_active INTEGER DEFAULT 1
     )""",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url TEXT",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_bot BOOLEAN DEFAULT FALSE",
     "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP",
     "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS edit_count INTEGER DEFAULT 0",
     "CREATE INDEX IF NOT EXISTS idx_predictions_user ON predictions(user_id)",
