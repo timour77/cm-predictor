@@ -26,6 +26,60 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/api/admin/stuck-matches")
+def admin_stuck_matches():
+    """Return matches in DB that are not FINISHED/AWARDED — useful to find 'stuck' live matches."""
+    from app.database import fetchall
+    rows = fetchall(
+        """SELECT external_match_id, home_team, away_team, home_goals, away_goals,
+                  status, match_date, updated_at
+           FROM match_results
+           WHERE status NOT IN ('FINISHED', 'AWARDED', 'SCHEDULED', 'TIMED', 'POSTPONED', 'CANCELLED')
+           ORDER BY match_date DESC"""
+    )
+    return rows
+
+
+@app.post("/api/admin/fix-match")
+def admin_fix_match(external_match_id: int, home_goals: int, away_goals: int, status: str = "FINISHED"):
+    """Manually set match result and recalculate points for all predictions on this match."""
+    import traceback
+    from app.database import get_conn, fetchall
+    from app.services.scoring import calculate_points
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """UPDATE match_results
+                   SET status=%s, home_goals=%s, away_goals=%s, updated_at=CURRENT_TIMESTAMP
+                   WHERE external_match_id=%s""",
+                (status, home_goals, away_goals, external_match_id),
+            )
+            updated_rows = cur.rowcount
+
+        preds = fetchall(
+            "SELECT id, outcome, predicted_score FROM predictions WHERE match_id=%s",
+            (external_match_id,),
+        )
+        pts_updated = 0
+        with get_conn() as conn:
+            cur = conn.cursor()
+            for pred in preds:
+                pts = calculate_points(
+                    pred["outcome"], pred["predicted_score"], home_goals, away_goals
+                )
+                cur.execute("UPDATE predictions SET points=%s WHERE id=%s", (pts, pred["id"]))
+                pts_updated += 1
+
+        return {
+            "status": "ok",
+            "match_rows_updated": updated_rows,
+            "predictions_updated": pts_updated,
+        }
+    except Exception as e:
+        return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
+
+
 @app.post("/api/admin/recalculate-scores")
 def admin_recalculate_scores():
     import traceback
@@ -40,7 +94,7 @@ def admin_recalculate_scores():
                           mr.home_goals, mr.away_goals
                    FROM predictions p
                    JOIN match_results mr ON mr.external_match_id = p.match_id
-                   WHERE mr.status = 'FINISHED'
+                   WHERE mr.status IN ('FINISHED', 'AWARDED')
                      AND mr.home_goals IS NOT NULL
                      AND mr.away_goals IS NOT NULL"""
             )

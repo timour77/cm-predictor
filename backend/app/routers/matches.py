@@ -32,7 +32,7 @@ def _upsert_and_score(matches: list, current_user: Optional[dict]) -> List[Match
 
     finished = [
         m for m in matches
-        if m["status"] == "FINISHED"
+        if m["status"] in ("FINISHED", "AWARDED")
         and m.get("home_goals") is not None
         and m.get("away_goals") is not None
     ]
