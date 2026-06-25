@@ -28,11 +28,18 @@ export const api = {
   getMyStats: () => request('GET', '/auth/me/stats'),
 
   // Matches
-  getMatches: (competitionId, date, status) => {
+  getMatches: async (competitionId, date, status) => {
     const params = new URLSearchParams({ competition_id: competitionId })
     if (date) params.set('date', date)
     if (status) params.set('status', status)
-    return request('GET', `/matches?${params}`)
+    const res = await fetch(`${BASE}/matches?${params}`, { method: 'GET', headers: getHeaders() })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }))
+      throw new Error(err.detail || 'Request failed')
+    }
+    const data = await res.json()
+    const fetchedAt = res.headers.get('X-Cache-Fetched-At')
+    return { matches: data, fetchedAt: fetchedAt ? new Date(parseInt(fetchedAt) * 1000) : null }
   },
   // Predictions
   savePrediction: (matchId, competitionId, outcome, predictedScore) =>

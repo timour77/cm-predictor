@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Query, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from typing import List, Optional
 from datetime import date
 
 from app.models import MatchResponse, PredictionResponse
-from app.services.football_api import get_matches, get_matches_today
+from app.services.football_api import get_matches, get_matches_today, get_cache_fetched_at, BASE_URL
 from app.services.scoring import calculate_points
 from app.database import fetchone, fetchall, execute, executemany
 from app.routers.auth import get_optional_user
@@ -102,10 +103,10 @@ def list_today_matches(
     return _upsert_and_score(matches, current_user)
 
 
-@router.get("", response_model=List[MatchResponse])
+@router.get("")
 def list_matches(
     competition_id: int = Query(...),
-    date: Optional[str] = Query(None),      # "2026-06-11"
+    date: Optional[str] = Query(None),
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -124,4 +125,7 @@ def list_matches(
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
 
-    return _upsert_and_score(matches, current_user)
+    result = _upsert_and_score(matches, current_user)
+    fetched_at = get_cache_fetched_at(f"{BASE_URL}/competitions/{competition_id}/matches")
+    headers = {"X-Cache-Fetched-At": str(int(fetched_at))} if fetched_at else {}
+    return JSONResponse(content=[r.model_dump() for r in result], headers=headers)

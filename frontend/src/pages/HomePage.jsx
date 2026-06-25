@@ -13,13 +13,13 @@ export function HomePage({ user }) {
   const [matches, setMatches] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [lastUpdated, setLastUpdated] = useState(null)
+  const [fetchedAt, setFetchedAt] = useState(null)
 
   const loadMatches = useCallback((silent = false) => {
     if (!silent) setLoading(true)
     setError(null)
     api.getMatches(WORLD_CUP_ID, date)
-      .then(data => { setMatches(data); setLastUpdated(new Date()) })
+      .then(({ matches, fetchedAt }) => { setMatches(matches); if (fetchedAt) setFetchedAt(fetchedAt) })
       .catch(e => setError(e.message))
       .finally(() => { if (!silent) setLoading(false) })
   }, [date])
@@ -53,9 +53,9 @@ export function HomePage({ user }) {
           <button className="btn btn-ghost btn-sm" onClick={() => shiftDate(1)}>▶</button>
           <button className="btn btn-ghost btn-sm" onClick={() => setDate(todayStr())}>Today</button>
         </div>
-        {lastUpdated && (
+        {fetchedAt && (
           <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 6 }}>
-            Обновлено в {lastUpdated.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            Данные от {fetchedAt.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </div>
         )}
       </div>

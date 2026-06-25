@@ -30,6 +30,12 @@ def _cached_get(url: str, params: dict = None) -> dict:
     return data
 
 
+def get_cache_fetched_at(url: str, params: dict = None) -> Optional[float]:
+    cache_key = url + str(sorted((params or {}).items()))
+    entry = _cache.get(cache_key)
+    return entry[0] if entry else None
+
+
 def get_matches(
     competition_id: int,
     date_from: Optional[str] = None,
