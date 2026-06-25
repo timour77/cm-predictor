@@ -144,22 +144,22 @@ def get_standings(competition_id: int) -> list:
 
 
 def get_team_matches(team_id: int, competition_id: int) -> List[Dict]:
-    data = _cached_get(
-        f"{BASE_URL}/teams/{team_id}/matches",
-        {"competitions": competition_id, "limit": 20},
-    )
+    # Use competition matches endpoint (known to work) and filter by team_id.
+    # Avoids /teams/{id}/matches which can return errors for some team IDs.
+    data = _cached_get(f"{BASE_URL}/competitions/{competition_id}/matches")
     result = []
     for m in data.get("matches", []):
+        home_id = m.get("homeTeam", {}).get("id")
+        away_id = m.get("awayTeam", {}).get("id")
+        if home_id != team_id and away_id != team_id:
+            continue
         score = m.get("score", {})
         full_time = score.get("fullTime", {})
-        competition = m.get("competition", {})
         result.append({
             "external_id": m["id"],
-            "competition_id": competition.get("id", competition_id),
+            "competition_id": competition_id,
             "home_team": m["homeTeam"]["name"],
             "away_team": m["awayTeam"]["name"],
-            "home_team_id": m["homeTeam"].get("id"),
-            "away_team_id": m["awayTeam"].get("id"),
             "home_team_crest": m["homeTeam"].get("crest"),
             "away_team_crest": m["awayTeam"].get("crest"),
             "match_date": m["utcDate"],
