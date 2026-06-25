@@ -30,10 +30,10 @@ def _cached_get(url: str, params: dict = None) -> dict:
     return data
 
 
-def get_cache_fetched_at(url: str, params: dict = None) -> Optional[float]:
-    cache_key = url + str(sorted((params or {}).items()))
-    entry = _cache.get(cache_key)
-    return entry[0] if entry else None
+def get_cache_fetched_at(url: str) -> Optional[float]:
+    # cache keys are url + serialised params — find most recent entry for this url
+    matches = [(ts, _) for key, (ts, _) in _cache.items() if key.startswith(url)]
+    return max(ts for ts, _ in matches) if matches else None
 
 
 def get_matches(
