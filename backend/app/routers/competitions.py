@@ -1,6 +1,6 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from typing import List
-from app.models import CompetitionResponse
+from app.models import CompetitionResponse, GroupStanding
 from app.database import fetchall
 
 router = APIRouter()
@@ -23,3 +23,12 @@ def get_competitions():
         )
         for r in rows
     ]
+
+
+@router.get("/{competition_id}/standings", response_model=List[GroupStanding])
+def get_competition_standings(competition_id: int):
+    from app.services.football_api import get_standings
+    try:
+        return get_standings(competition_id)
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))

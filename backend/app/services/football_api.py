@@ -111,5 +111,36 @@ def get_competitions() -> List[Dict]:
     ]
 
 
+def get_standings(competition_id: int) -> list:
+    data = _cached_get(f"{BASE_URL}/competitions/{competition_id}/standings")
+    result = []
+    for standing in data.get("standings", []):
+        if standing.get("type") != "TOTAL":
+            continue
+        group_name = standing.get("group") or ""
+        # Normalize "GROUP_A" → "A"
+        if group_name.startswith("GROUP_"):
+            group_name = group_name[6:]
+        table = []
+        for entry in standing.get("table", []):
+            team = entry.get("team", {})
+            table.append({
+                "position": entry.get("position", 0),
+                "team_name": team.get("name", ""),
+                "team_crest": team.get("crest"),
+                "played": entry.get("playedGames", 0),
+                "won": entry.get("won", 0),
+                "draw": entry.get("draw", 0),
+                "lost": entry.get("lost", 0),
+                "goals_for": entry.get("goalsFor", 0),
+                "goals_against": entry.get("goalsAgainst", 0),
+                "goal_difference": entry.get("goalDifference", 0),
+                "points": entry.get("points", 0),
+            })
+        if table:
+            result.append({"group": group_name, "table": table})
+    return result
+
+
 def invalidate_cache():
     _cache.clear()

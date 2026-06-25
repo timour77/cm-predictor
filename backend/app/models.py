@@ -107,3 +107,22 @@ class UserPredictionHistory(BaseModel):
     outcome: Optional[str]
     predicted_score: Optional[str]
     points: int
+
+
+class StandingEntry(BaseModel):
+    position: int
+    team_name: str
+    team_crest: Optional[str]
+    played: int
+    won: int
+    draw: int
+    lost: int
+    goals_for: int
+    goals_against: int
+    goal_difference: int
+    points: int
+
+
+class GroupStanding(BaseModel):
+    group: str
+    table: List[StandingEntry]

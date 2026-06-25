@@ -158,18 +158,18 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px 4px 8px;
+  padding: 8px 2px 6px;
   cursor: pointer;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   border: none;
   background: none;
   transition: color 0.15s;
-  gap: 3px;
+  gap: 2px;
 }
 .nav-tab.active { color: var(--primary); }
-.nav-tab-icon { font-size: 20px; }
+.nav-tab-icon { font-size: 18px; }
 
 /* Page content */
 .page {
@@ -716,6 +716,121 @@ body {
   gap: 6px;
   flex-shrink: 0;
 }
+
+/* Group standings */
+.group-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.group-title {
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--bg3);
+  color: var(--primary);
+  border-bottom: 1px solid var(--border);
+}
+.standing-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.standing-table th {
+  padding: 6px 8px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.standing-table th.standing-team-col { text-align: left; padding-left: 6px; }
+.standing-table td {
+  padding: 8px 8px;
+  text-align: center;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+  color: var(--text);
+}
+.standing-table tr:last-child td { border-bottom: none; }
+.standing-row.standing-advance td:first-child {
+  border-left: 3px solid var(--success);
+}
+.standing-row.standing-possible td:first-child {
+  border-left: 3px solid var(--warning);
+}
+.standing-pos {
+  color: var(--text-muted);
+  font-weight: 600;
+  min-width: 20px;
+}
+.standing-team {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  text-align: left;
+  min-width: 0;
+}
+.standing-team-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
+}
+.standing-crest {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.standing-crest-placeholder {
+  width: 20px;
+  height: 20px;
+  background: var(--bg3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+.standing-pts {
+  font-weight: 700;
+  color: var(--text);
+}
+.standing-gd-pos { color: var(--success); }
+.standing-gd-neg { color: var(--danger); }
+.standing-hide-xs { }
+
+.groups-legend {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.legend-item::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+}
+.legend-advance::before { background: var(--success); }
+.legend-possible::before { background: var(--warning); }
 
 /* Chip */
 .chip {
