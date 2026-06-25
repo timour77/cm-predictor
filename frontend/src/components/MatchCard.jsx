@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api } from '../services/api'
 import { STATUS_LABELS, STATUS_COLORS } from '../utils/constants'
+import { TeamModal } from './TeamModal'
 
 const TZ_SLOTS = [
   { label: 'BCN', tz: 'Europe/Madrid' },
@@ -91,6 +92,7 @@ export function MatchCard({ match, currentUserId, onPredictionSaved }) {
   const [showPredictions, setShowPredictions] = useState(false)
   const [allPredictions, setAllPredictions] = useState(null)
   const [predLoading, setPredLoading] = useState(false)
+  const [selectedTeam, setSelectedTeam] = useState(null)
 
   const outcome = calcOutcome(homeGoals, awayGoals)
   const predictedScore = `${homeGoals}-${awayGoals}`
@@ -162,7 +164,10 @@ export function MatchCard({ match, currentUserId, onPredictionSaved }) {
       )}
 
       <div className="match-teams">
-        <div className="team">
+        <div
+          className="team team-clickable"
+          onClick={() => setSelectedTeam({ id: match.home_team_id, name: match.home_team, crest: match.home_team_crest })}
+        >
           <TeamCrest src={match.home_team_crest} name={match.home_team} />
           <span className="team-name">{match.home_team}</span>
         </div>
@@ -174,11 +179,24 @@ export function MatchCard({ match, currentUserId, onPredictionSaved }) {
           }
         </div>
 
-        <div className="team">
+        <div
+          className="team team-clickable"
+          onClick={() => setSelectedTeam({ id: match.away_team_id, name: match.away_team, crest: match.away_team_crest })}
+        >
           <TeamCrest src={match.away_team_crest} name={match.away_team} />
           <span className="team-name">{match.away_team}</span>
         </div>
       </div>
+
+      {selectedTeam && (
+        <TeamModal
+          teamId={selectedTeam.id}
+          teamName={selectedTeam.name}
+          teamCrest={selectedTeam.crest}
+          competitionId={match.competition_id}
+          onClose={() => setSelectedTeam(null)}
+        />
+      )}
 
       {/* Prediction form for scheduled matches */}
       {isScheduled(match.status) && (

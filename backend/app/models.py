@@ -45,6 +45,8 @@ class MatchResponse(BaseModel):
     competition_name: Optional[str] = None
     home_team: str
     away_team: str
+    home_team_id: Optional[int] = None
+    away_team_id: Optional[int] = None
     home_team_crest: Optional[str]
     away_team_crest: Optional[str]
     match_date: str

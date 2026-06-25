@@ -72,6 +72,8 @@ def _upsert_and_score(matches: list, current_user: Optional[dict]) -> List[Match
                 competition_name=m.get("competition_name"),
                 home_team=m["home_team"],
                 away_team=m["away_team"],
+                home_team_id=m.get("home_team_id"),
+                away_team_id=m.get("away_team_id"),
                 home_team_crest=m.get("home_team_crest"),
                 away_team_crest=m.get("away_team_crest"),
                 match_date=m["match_date"],
