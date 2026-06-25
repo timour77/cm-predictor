@@ -56,8 +56,11 @@ export const api = {
   getStandings: (competitionId) => request('GET', `/competitions/${competitionId}/standings`),
 
   // Teams
-  getTeamMatches: (teamId, competitionId) =>
-    request('GET', `/teams/${teamId}/matches?competition_id=${competitionId}`),
+  getTeamMatches: (teamId, competitionId, teamName) => {
+    const params = new URLSearchParams({ competition_id: competitionId })
+    if (teamName) params.set('team_name', teamName)
+    return request('GET', `/teams/${teamId || 0}/matches?${params}`)
+  },
 
   // Leaderboard
   getLeaderboard: (competitionId) => {

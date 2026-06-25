@@ -147,25 +147,31 @@ def get_standings(competition_id: int) -> list:
     return result
 
 
-def get_team_matches(team_id: int, competition_id: int) -> List[Dict]:
-    # Use competition matches endpoint (known to work) and filter by team_id.
-    # Avoids /teams/{id}/matches which can return errors for some team IDs.
+def get_team_matches(
+    competition_id: int,
+    team_id: Optional[int] = None,
+    team_name: Optional[str] = None,
+) -> List[Dict]:
+    # Use competition matches endpoint and filter by team_id, falling back to
+    # team_name when the API doesn't return an id for that team.
     data = _cached_get(f"{BASE_URL}/competitions/{competition_id}/matches")
     result = []
     for m in data.get("matches", []):
-        home_id = m.get("homeTeam", {}).get("id")
-        away_id = m.get("awayTeam", {}).get("id")
-        if home_id != team_id and away_id != team_id:
+        home = m.get("homeTeam", {})
+        away = m.get("awayTeam", {})
+        by_id = team_id and (home.get("id") == team_id or away.get("id") == team_id)
+        by_name = team_name and (home.get("name") == team_name or away.get("name") == team_name)
+        if not by_id and not by_name:
             continue
         score = m.get("score", {})
         full_time = score.get("fullTime", {})
         result.append({
             "external_id": m["id"],
             "competition_id": competition_id,
-            "home_team": m["homeTeam"]["name"],
-            "away_team": m["awayTeam"]["name"],
-            "home_team_crest": m["homeTeam"].get("crest"),
-            "away_team_crest": m["awayTeam"].get("crest"),
+            "home_team": home["name"],
+            "away_team": away["name"],
+            "home_team_crest": home.get("crest"),
+            "away_team_crest": away.get("crest"),
             "match_date": m["utcDate"],
             "status": m["status"],
             "home_goals": full_time.get("home"),

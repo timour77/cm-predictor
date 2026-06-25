@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Query, HTTPException
-from typing import List
+from typing import List, Optional
 from app.models import MatchResponse
 from app.services.football_api import get_team_matches
 
@@ -10,9 +10,14 @@ router = APIRouter()
 def list_team_matches(
     team_id: int,
     competition_id: int = Query(...),
+    team_name: Optional[str] = Query(None),
 ):
     try:
-        matches = get_team_matches(team_id, competition_id)
+        matches = get_team_matches(
+            competition_id,
+            team_id=team_id or None,
+            team_name=team_name,
+        )
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
     return [

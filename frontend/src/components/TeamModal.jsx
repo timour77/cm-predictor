@@ -40,16 +40,11 @@ export function TeamModal({ teamId, teamName, teamCrest, competitionId, onClose 
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    if (!teamId) {
-      setError('ID команды недоступен')
-      setLoading(false)
-      return
-    }
-    api.getTeamMatches(teamId, competitionId)
+    api.getTeamMatches(teamId, competitionId, teamName)
       .then(data => setMatches(data.sort((a, b) => new Date(a.match_date) - new Date(b.match_date))))
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
-  }, [teamId, competitionId])
+  }, [teamId, teamName, competitionId])
 
   function getResult(match) {
     if (match.status !== 'FINISHED' && match.status !== 'AWARDED') return null
