@@ -62,6 +62,7 @@ class LeaderboardEntry(BaseModel):
     rank: int
     user_id: int
     username: str
+    photo_url: Optional[str] = None
     total_points: int
     correct_outcomes: int
     correct_scores: int

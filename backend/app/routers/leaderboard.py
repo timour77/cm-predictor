@@ -12,13 +12,13 @@ def _build_leaderboard(competition_id: Optional[int]) -> List[LeaderboardEntry]:
     if competition_id:
         rows = fetchall(
             """
-            SELECT u.id as user_id, u.username, COALESCE(u.is_bot, FALSE) as is_bot,
+            SELECT u.id as user_id, u.username, u.photo_url, COALESCE(u.is_bot, FALSE) as is_bot,
                    COALESCE(SUM(p.points), 0) as total_points,
                    COALESCE(SUM(CASE WHEN p.points > 0 THEN 1 ELSE 0 END), 0) as correct_outcomes,
                    COALESCE(SUM(CASE WHEN p.points >= 3 THEN 1 ELSE 0 END), 0) as correct_scores
             FROM users u
             LEFT JOIN predictions p ON p.user_id = u.id AND p.competition_id = %s
-            GROUP BY u.id, u.username, u.is_bot
+            GROUP BY u.id, u.username, u.photo_url, u.is_bot
             HAVING COALESCE(SUM(p.points), 0) > 0
             ORDER BY total_points DESC
             LIMIT 100
@@ -28,13 +28,13 @@ def _build_leaderboard(competition_id: Optional[int]) -> List[LeaderboardEntry]:
     else:
         rows = fetchall(
             """
-            SELECT u.id as user_id, u.username, COALESCE(u.is_bot, FALSE) as is_bot,
+            SELECT u.id as user_id, u.username, u.photo_url, COALESCE(u.is_bot, FALSE) as is_bot,
                    COALESCE(SUM(p.points), 0) as total_points,
                    COALESCE(SUM(CASE WHEN p.points > 0 THEN 1 ELSE 0 END), 0) as correct_outcomes,
                    COALESCE(SUM(CASE WHEN p.points >= 3 THEN 1 ELSE 0 END), 0) as correct_scores
             FROM users u
             LEFT JOIN predictions p ON p.user_id = u.id
-            GROUP BY u.id, u.username, u.is_bot
+            GROUP BY u.id, u.username, u.photo_url, u.is_bot
             HAVING COALESCE(SUM(p.points), 0) > 0
             ORDER BY total_points DESC
             LIMIT 100
@@ -45,6 +45,7 @@ def _build_leaderboard(competition_id: Optional[int]) -> List[LeaderboardEntry]:
             rank=i + 1,
             user_id=r["user_id"],
             username=r["username"],
+            photo_url=r.get("photo_url"),
             total_points=r["total_points"],
             correct_outcomes=r["correct_outcomes"],
             correct_scores=r["correct_scores"],

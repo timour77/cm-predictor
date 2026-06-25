@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { api } from '../services/api'
+import { PredictionHistoryItem } from '../components/UserDetail'
 
 function formatJoinDate(isoStr) {
   if (!isoStr) return '—'
@@ -13,11 +14,12 @@ function accuracy(correct, total) {
 
 export function ProfilePage({ user, onLogout }) {
   const [stats, setStats] = useState(null)
+  const [predictions, setPredictions] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.getMyStats()
-      .then(setStats)
+    Promise.all([api.getMyStats(), api.getMyPredictions()])
+      .then(([s, p]) => { setStats(s); setPredictions(p) })
       .finally(() => setLoading(false))
   }, [])
 
@@ -69,6 +71,25 @@ export function ProfilePage({ user, onLogout }) {
           </div>
         ))}
       </div>
+
+      <div className="section-label" style={{ margin: '16px 0 10px' }}>
+        История ставок
+      </div>
+
+      {loading ? (
+        <div className="loader"><div className="spinner" />Загрузка...</div>
+      ) : predictions.length === 0 ? (
+        <div className="empty-state" style={{ padding: '24px' }}>
+          <div className="empty-state-icon">📋</div>
+          <div className="empty-state-text">Нет ставок</div>
+        </div>
+      ) : (
+        <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 16 }}>
+          {predictions.map(p => (
+            <PredictionHistoryItem key={p.id} p={p} />
+          ))}
+        </div>
+      )}
 
       <button className="btn btn-danger btn-block" onClick={onLogout}>
         Выйти
