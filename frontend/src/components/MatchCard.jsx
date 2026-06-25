@@ -25,7 +25,7 @@ function TeamCrest({ src, name }) {
 
 const isScheduled = (status) => ['SCHEDULED', 'TIMED'].includes(status)
 const isFinished = (status) => status === 'FINISHED'
-const isLive = (status) => ['IN_PLAY', 'PAUSED'].includes(status)
+const isLive = (status) => ['IN_PLAY', 'PAUSED', 'LIVE'].includes(status)
 
 function parseScore(scoreStr) {
   if (!scoreStr) return [0, 0]
