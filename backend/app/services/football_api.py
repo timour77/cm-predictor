@@ -126,6 +126,7 @@ def get_standings(competition_id: int) -> list:
             team = entry.get("team", {})
             table.append({
                 "position": entry.get("position", 0),
+                "team_id": team.get("id", 0),
                 "team_name": team.get("name", ""),
                 "team_crest": team.get("crest"),
                 "played": entry.get("playedGames", 0),
@@ -139,6 +140,34 @@ def get_standings(competition_id: int) -> list:
             })
         if table:
             result.append({"group": group_name, "table": table})
+    return result
+
+
+def get_team_matches(team_id: int, competition_id: int) -> List[Dict]:
+    data = _cached_get(
+        f"{BASE_URL}/teams/{team_id}/matches",
+        {"competitions": competition_id, "limit": 20},
+    )
+    result = []
+    for m in data.get("matches", []):
+        score = m.get("score", {})
+        full_time = score.get("fullTime", {})
+        competition = m.get("competition", {})
+        result.append({
+            "external_id": m["id"],
+            "competition_id": competition.get("id", competition_id),
+            "home_team": m["homeTeam"]["name"],
+            "away_team": m["awayTeam"]["name"],
+            "home_team_id": m["homeTeam"].get("id"),
+            "away_team_id": m["awayTeam"].get("id"),
+            "home_team_crest": m["homeTeam"].get("crest"),
+            "away_team_crest": m["awayTeam"].get("crest"),
+            "match_date": m["utcDate"],
+            "status": m["status"],
+            "home_goals": full_time.get("home"),
+            "away_goals": full_time.get("away"),
+            "matchday": m.get("matchday"),
+        })
     return result
 
 

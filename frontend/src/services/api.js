@@ -55,6 +55,10 @@ export const api = {
   // Standings
   getStandings: (competitionId) => request('GET', `/competitions/${competitionId}/standings`),
 
+  // Teams
+  getTeamMatches: (teamId, competitionId) =>
+    request('GET', `/teams/${teamId}/matches?competition_id=${competitionId}`),
+
   // Leaderboard
   getLeaderboard: (competitionId) => {
     const params = competitionId ? `?competition_id=${competitionId}` : ''

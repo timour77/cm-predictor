@@ -111,6 +111,7 @@ class UserPredictionHistory(BaseModel):
 
 class StandingEntry(BaseModel):
     position: int
+    team_id: int
     team_name: str
     team_crest: Optional[str]
     played: int
