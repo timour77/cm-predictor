@@ -14,16 +14,23 @@ export function HomePage({ user }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const loadMatches = useCallback(() => {
-    setLoading(true)
+  const loadMatches = useCallback((silent = false) => {
+    if (!silent) setLoading(true)
     setError(null)
     api.getMatches(WORLD_CUP_ID, date)
       .then(setMatches)
       .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+      .finally(() => { if (!silent) setLoading(false) })
   }, [date])
 
   useEffect(() => { loadMatches() }, [loadMatches])
+
+  // Auto-refresh every 60s when viewing today's matches
+  useEffect(() => {
+    if (date !== todayStr()) return
+    const id = setInterval(() => loadMatches(true), 60_000)
+    return () => clearInterval(id)
+  }, [date, loadMatches])
 
   function shiftDate(days) {
     const d = new Date(date)
