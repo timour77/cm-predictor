@@ -160,9 +160,11 @@ def admin_generate_bot_predictions(competition_id: int):
 @app.post("/api/admin/init-db")
 def admin_init_db():
     import traceback
-    from app.database import get_conn
+    from app.database import get_conn, init_db
     results = []
     try:
+        init_db()
+        results.append("schema migrations ok (init_db)")
         with get_conn() as conn:
             cur = conn.cursor()
             results.append("connected")
