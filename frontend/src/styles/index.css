@@ -1042,27 +1042,7 @@ body {
   color: var(--text-muted);
 }
 
-/* Bracket page */
-.bracket-round {
-  margin-bottom: 8px;
-}
-.bracket-round-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  padding: 12px 4px 8px;
-}
-.bracket-round-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.bracket-round-date {
-  font-size: 12px;
-  color: var(--text-muted);
-}
+
 .match-stage {
   font-size: 11px;
   font-weight: 700;
