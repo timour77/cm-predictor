@@ -541,6 +541,12 @@ body {
   padding: 8px 12px;
   border-bottom: 1px solid var(--border);
 }
+.leaderboard-table th:first-child,
+.leaderboard-table td:first-child {
+  padding-left: 12px;
+  padding-right: 4px;
+  width: 28px;
+}
 .leaderboard-table td {
   padding: 12px 12px;
   border-bottom: 1px solid rgba(51, 65, 85, 0.5);
@@ -552,17 +558,17 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  font-weight: 700;
-  font-size: 12px;
-  background: var(--bg3);
-  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 11px;
+  background: transparent;
+  color: rgba(148, 163, 184, 0.5);
 }
-.rank-badge.top1 { background: #FFD700; color: #333; }
-.rank-badge.top2 { background: #C0C0C0; color: #333; }
-.rank-badge.top3 { background: #CD7F32; color: white; }
+.rank-badge.top1 { background: rgba(255, 215, 0, 0.15); color: rgba(255, 215, 0, 0.7); }
+.rank-badge.top2 { background: rgba(192, 192, 192, 0.12); color: rgba(192, 192, 192, 0.6); }
+.rank-badge.top3 { background: rgba(205, 127, 50, 0.15); color: rgba(205, 127, 50, 0.65); }
 
 /* Empty state */
 .empty-state {

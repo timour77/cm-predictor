@@ -16,9 +16,9 @@ export function LeaderboardTable({ entries, currentUserId, onRowClick }) {
         <tr>
           <th>#</th>
           <th>Игрок</th>
-          <th>Очки</th>
           <th title="Угаданные исходы">✓</th>
           <th title="Угаданные счета">🎯</th>
+          <th>Очки</th>
         </tr>
       </thead>
       <tbody>
@@ -44,9 +44,9 @@ export function LeaderboardTable({ entries, currentUserId, onRowClick }) {
                   {isMe && <span className="me-tag">Я</span>}
                 </div>
               </td>
-              <td style={{ fontWeight: 700, color: 'var(--warning)' }}>{e.total_points}</td>
               <td style={{ color: 'var(--success)' }}>{e.correct_outcomes}</td>
               <td style={{ color: 'var(--primary)' }}>{e.correct_scores}</td>
+              <td style={{ fontWeight: 700, color: 'var(--warning)' }}>{e.total_points}</td>
             </tr>
           )
         })}
