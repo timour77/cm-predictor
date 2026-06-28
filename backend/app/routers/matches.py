@@ -13,50 +13,69 @@ router = APIRouter()
 
 
 def _upsert_and_score(matches: list, current_user: Optional[dict]) -> List[MatchResponse]:
-    if matches:
-        executemany(
-            """INSERT INTO match_results
-                   (external_match_id, competition_id, home_team, away_team,
-                    home_goals, away_goals, match_date, status)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-               ON CONFLICT (external_match_id) DO UPDATE SET
-                   home_goals = EXCLUDED.home_goals,
-                   away_goals = EXCLUDED.away_goals,
-                   status = EXCLUDED.status,
-                   updated_at = CURRENT_TIMESTAMP""",
-            [
-                (m["external_id"], m["competition_id"], m["home_team"], m["away_team"],
-                 m.get("home_goals"), m.get("away_goals"), m["match_date"], m["status"])
-                for m in matches if m.get("competition_id")
-            ],
-        )
+    if not matches:
+        return []
 
-    finished = [
-        m for m in matches
+    executemany(
+        """INSERT INTO match_results
+               (external_match_id, competition_id, home_team, away_team,
+                home_goals, away_goals, match_date, status)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+           ON CONFLICT (external_match_id) DO UPDATE SET
+               home_goals = EXCLUDED.home_goals,
+               away_goals = EXCLUDED.away_goals,
+               status = EXCLUDED.status,
+               updated_at = CURRENT_TIMESTAMP""",
+        [
+            (m["external_id"], m["competition_id"], m["home_team"], m["away_team"],
+             m.get("home_goals"), m.get("away_goals"), m["match_date"], m["status"])
+            for m in matches if m.get("competition_id")
+        ],
+    )
+
+    # Batch-score finished matches: 1 SELECT + 1 executemany instead of N+N
+    finished_ids = [
+        m["external_id"] for m in matches
         if m["status"] in ("FINISHED", "AWARDED")
         and m.get("home_goals") is not None
         and m.get("away_goals") is not None
     ]
-    for m in finished:
-        preds = fetchall(
-            "SELECT id, outcome, predicted_score FROM predictions WHERE match_id=%s",
-            (m["external_id"],),
+    if finished_ids:
+        score_map = {
+            m["external_id"]: (m["home_goals"], m["away_goals"])
+            for m in matches if m["external_id"] in set(finished_ids)
+        }
+        ph = ",".join(["%s"] * len(finished_ids))
+        preds_to_score = fetchall(
+            f"SELECT id, match_id, outcome, predicted_score FROM predictions WHERE match_id IN ({ph})",
+            tuple(finished_ids),
         )
-        for pred in preds:
-            pts = calculate_points(
-                pred["outcome"], pred["predicted_score"],
-                m["home_goals"], m["away_goals"],
+        if preds_to_score:
+            executemany(
+                "UPDATE predictions SET points=%s WHERE id=%s",
+                [
+                    (calculate_points(p["outcome"], p["predicted_score"], *score_map[p["match_id"]]), p["id"])
+                    for p in preds_to_score
+                ],
             )
-            execute("UPDATE predictions SET points=%s WHERE id=%s", (pts, pred["id"]))
+
+    # Batch-fetch current user's predictions: 1 SELECT for all matches
+    pred_by_match: dict = {}
+    if current_user:
+        match_ids = [m["external_id"] for m in matches if m.get("competition_id")]
+        if match_ids:
+            ph = ",".join(["%s"] * len(match_ids))
+            rows = fetchall(
+                f"SELECT * FROM predictions WHERE user_id=%s AND match_id IN ({ph})",
+                (current_user["user_id"], *match_ids),
+            )
+            pred_by_match = {r["match_id"]: r for r in rows}
 
     result = []
     for m in matches:
         pred = None
         if current_user and m.get("competition_id"):
-            row = fetchone(
-                "SELECT * FROM predictions WHERE user_id=%s AND match_id=%s",
-                (current_user["user_id"], m["external_id"]),
-            )
+            row = pred_by_match.get(m["external_id"])
             if row:
                 pred = PredictionResponse(
                     id=row["id"],
