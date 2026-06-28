@@ -77,6 +77,7 @@ def get_matches(
             "home_goals": full_time.get("home"),
             "away_goals": full_time.get("away"),
             "matchday": m.get("matchday"),
+            "stage": m.get("stage"),
         })
     return result
 

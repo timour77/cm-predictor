@@ -27,6 +27,17 @@ const isScheduled = (status) => ['SCHEDULED', 'TIMED'].includes(status)
 const isFinished = (status) => status === 'FINISHED'
 const isLive = (status) => ['IN_PLAY', 'PAUSED', 'LIVE'].includes(status)
 
+export const STAGE_LABELS = {
+  LAST_32: '1/16',
+  LAST_16: '1/8',
+  QUARTER_FINALS: '1/4',
+  SEMI_FINALS: '1/2',
+  '3RD_PLACE': '3-е место',
+  FINAL: 'Финал',
+}
+
+export const STAGE_ORDER = ['LAST_32', 'LAST_16', 'QUARTER_FINALS', 'SEMI_FINALS', '3RD_PLACE', 'FINAL']
+
 function parseScore(scoreStr) {
   if (!scoreStr) return [0, 0]
   const parts = scoreStr.split('-')
@@ -151,7 +162,12 @@ export function MatchCard({ match, currentUserId, onPredictionSaved }) {
             </span>
           ))}
         </div>
-        {match.matchday && <span>MD {match.matchday}</span>}
+        {match.stage && STAGE_LABELS[match.stage]
+          ? <span className="match-stage">{STAGE_LABELS[match.stage]}</span>
+          : match.matchday
+            ? <span>MD {match.matchday}</span>
+            : null
+        }
         <span
           className={`match-status ${statusClass}`}
           style={{ color: STATUS_COLORS[match.status] }}

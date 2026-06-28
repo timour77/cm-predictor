@@ -55,6 +55,7 @@ class MatchResponse(BaseModel):
     home_goals: Optional[int]
     away_goals: Optional[int]
     matchday: Optional[int]
+    stage: Optional[str] = None
     user_prediction: Optional[PredictionResponse] = None
 
 

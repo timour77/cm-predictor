@@ -59,6 +59,19 @@ export const api = {
   getUserStats: (userId) => request('GET', `/users/${userId}/stats`),
   getUserPredictions: (userId) => request('GET', `/users/${userId}/predictions`),
 
+  // Bracket (all matches, no date filter)
+  getBracket: (competitionId) => {
+    const params = new URLSearchParams({ competition_id: competitionId })
+    return fetch(`${BASE}/matches?${params}`, { method: 'GET', headers: getHeaders() })
+      .then(async res => {
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: res.statusText }))
+          throw new Error(err.detail || 'Request failed')
+        }
+        return res.json()
+      })
+  },
+
   // Standings
   getStandings: (competitionId) => request('GET', `/competitions/${competitionId}/standings`),
 

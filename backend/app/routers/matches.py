@@ -83,6 +83,7 @@ def _upsert_and_score(matches: list, current_user: Optional[dict]) -> List[Match
                 home_goals=m.get("home_goals"),
                 away_goals=m.get("away_goals"),
                 matchday=m.get("matchday"),
+                stage=m.get("stage"),
                 user_prediction=pred,
             )
         )
