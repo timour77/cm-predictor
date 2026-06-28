@@ -56,6 +56,8 @@ def get_matches(
 
     result = []
     for m in data.get("matches", []):
+        home = m.get("homeTeam") or {}
+        away = m.get("awayTeam") or {}
         score = m.get("score", {})
         full_time = score.get("fullTime", {})
         venue_data = m.get("venue") or {}
@@ -63,12 +65,12 @@ def get_matches(
         result.append({
             "external_id": m["id"],
             "competition_id": competition_id,
-            "home_team": m["homeTeam"]["name"],
-            "away_team": m["awayTeam"]["name"],
-            "home_team_id": m["homeTeam"].get("id"),
-            "away_team_id": m["awayTeam"].get("id"),
-            "home_team_crest": m["homeTeam"].get("crest"),
-            "away_team_crest": m["awayTeam"].get("crest"),
+            "home_team": home.get("name") or "TBD",
+            "away_team": away.get("name") or "TBD",
+            "home_team_id": home.get("id"),
+            "away_team_id": away.get("id"),
+            "home_team_crest": home.get("crest"),
+            "away_team_crest": away.get("crest"),
             "match_date": m["utcDate"],
             "venue": venue_name,
             "status": m["status"],
@@ -84,6 +86,8 @@ def get_matches_today(date_str: str) -> List[Dict]:
     data = _cached_get(f"{BASE_URL}/matches", params)
     result = []
     for m in data.get("matches", []):
+        home = m.get("homeTeam") or {}
+        away = m.get("awayTeam") or {}
         score = m.get("score", {})
         full_time = score.get("fullTime", {})
         competition = m.get("competition", {})
@@ -91,12 +95,12 @@ def get_matches_today(date_str: str) -> List[Dict]:
             "external_id": m["id"],
             "competition_id": competition.get("id"),
             "competition_name": competition.get("name"),
-            "home_team": m["homeTeam"]["name"],
-            "away_team": m["awayTeam"]["name"],
-            "home_team_id": m["homeTeam"].get("id"),
-            "away_team_id": m["awayTeam"].get("id"),
-            "home_team_crest": m["homeTeam"].get("crest"),
-            "away_team_crest": m["awayTeam"].get("crest"),
+            "home_team": home.get("name") or "TBD",
+            "away_team": away.get("name") or "TBD",
+            "home_team_id": home.get("id"),
+            "away_team_id": away.get("id"),
+            "home_team_crest": home.get("crest"),
+            "away_team_crest": away.get("crest"),
             "match_date": m["utcDate"],
             "status": m["status"],
             "home_goals": full_time.get("home"),
@@ -163,8 +167,8 @@ def get_team_matches(
     data = _cached_get(f"{BASE_URL}/competitions/{competition_id}/matches")
     result = []
     for m in data.get("matches", []):
-        home = m.get("homeTeam", {})
-        away = m.get("awayTeam", {})
+        home = m.get("homeTeam") or {}
+        away = m.get("awayTeam") or {}
         by_id = team_id and (home.get("id") == team_id or away.get("id") == team_id)
         by_name = team_name and (home.get("name") == team_name or away.get("name") == team_name)
         if not by_id and not by_name:
@@ -174,8 +178,8 @@ def get_team_matches(
         result.append({
             "external_id": m["id"],
             "competition_id": competition_id,
-            "home_team": home["name"],
-            "away_team": away["name"],
+            "home_team": home.get("name") or "TBD",
+            "away_team": away.get("name") or "TBD",
             "home_team_crest": home.get("crest"),
             "away_team_crest": away.get("crest"),
             "match_date": m["utcDate"],
