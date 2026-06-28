@@ -1,3 +1,4 @@
+import threading
 import pg8000.dbapi
 import ssl
 from urllib.parse import urlparse
@@ -73,6 +74,22 @@ DEFAULT_COMPETITIONS = [
 ]
 
 
+# A fresh SSL handshake to the (remote) Postgres dominates request latency in
+# serverless: a single endpoint may run 4-5 queries, each previously opening and
+# closing its own connection. We instead cache one connection per worker thread
+# and reuse it across queries/requests, reconnecting only when it has gone stale.
+_local = threading.local()
+
+# Errors that mean the cached connection is dead and should be dropped + retried.
+_CONN_ERRORS = (
+    pg8000.dbapi.InterfaceError,
+    pg8000.dbapi.OperationalError,
+    ConnectionError,
+    OSError,
+    ssl.SSLError,
+)
+
+
 def _connect():
     url = urlparse(DATABASE_URL.replace("postgres://", "postgresql://", 1))
     ssl_ctx = ssl.create_default_context()
@@ -86,17 +103,60 @@ def _connect():
     )
 
 
+def _shared_conn():
+    conn = getattr(_local, "conn", None)
+    if conn is None:
+        conn = _connect()
+        _local.conn = conn
+    return conn
+
+
+def _drop_conn():
+    conn = getattr(_local, "conn", None)
+    if conn is not None:
+        try:
+            conn.close()
+        except Exception:
+            pass
+    _local.conn = None
+
+
 @contextmanager
 def get_conn():
-    conn = _connect()
+    conn = _shared_conn()
     try:
         yield conn
         conn.commit()
-    except Exception:
-        conn.rollback()
+    except _CONN_ERRORS:
+        _drop_conn()
         raise
-    finally:
-        conn.close()
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            _drop_conn()
+        raise
+
+
+def _run(op):
+    """Run a unit of DB work on the shared connection, reconnecting once if the
+    cached connection was dropped by the server (idle timeout, frozen instance)."""
+    for attempt in range(2):
+        conn = _shared_conn()
+        try:
+            result = op(conn)
+            conn.commit()
+            return result
+        except _CONN_ERRORS:
+            _drop_conn()
+            if attempt == 1:
+                raise
+        except Exception:
+            try:
+                conn.rollback()
+            except Exception:
+                _drop_conn()
+            raise
 
 
 def _to_dict(cursor, row):
@@ -120,17 +180,18 @@ def init_db():
 
 
 def fetchone(query: str, params: tuple = ()):
-    with get_conn() as conn:
+    def op(conn):
         cur = conn.cursor()
         if params:
             cur.execute(query, params)
         else:
             cur.execute(query)
         return _to_dict(cur, cur.fetchone())
+    return _run(op)
 
 
 def fetchall(query: str, params: tuple = ()) -> list:
-    with get_conn() as conn:
+    def op(conn):
         cur = conn.cursor()
         if params:
             cur.execute(query, params)
@@ -140,17 +201,19 @@ def fetchall(query: str, params: tuple = ()) -> list:
             return []
         cols = [d[0] for d in cur.description]
         return [dict(zip(cols, row)) for row in cur.fetchall()]
+    return _run(op)
 
 
 def executemany(query: str, params_list: list):
-    with get_conn() as conn:
+    def op(conn):
         cur = conn.cursor()
         for params in params_list:
             cur.execute(query, params)
+    return _run(op)
 
 
 def execute(query: str, params: tuple = ()) -> Optional[int]:
-    with get_conn() as conn:
+    def op(conn):
         cur = conn.cursor()
         if params:
             cur.execute(query, params)
@@ -160,3 +223,4 @@ def execute(query: str, params: tuple = ()) -> Optional[int]:
             row = cur.fetchone()
             return row[0] if row else None
         return None
+    return _run(op)

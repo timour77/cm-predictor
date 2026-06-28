@@ -16,22 +16,26 @@ def _upsert_and_score(matches: list, current_user: Optional[dict]) -> List[Match
     if not matches:
         return []
 
-    executemany(
-        """INSERT INTO match_results
-               (external_match_id, competition_id, home_team, away_team,
-                home_goals, away_goals, match_date, status)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-           ON CONFLICT (external_match_id) DO UPDATE SET
-               home_goals = EXCLUDED.home_goals,
-               away_goals = EXCLUDED.away_goals,
-               status = EXCLUDED.status,
-               updated_at = CURRENT_TIMESTAMP""",
-        [
-            (m["external_id"], m["competition_id"], m["home_team"], m["away_team"],
-             m.get("home_goals"), m.get("away_goals"), m["match_date"], m["status"])
-            for m in matches if m.get("competition_id")
-        ],
-    )
+    # Single multi-row upsert (one round-trip) instead of one statement per match
+    upsert_rows = [
+        (m["external_id"], m["competition_id"], m["home_team"], m["away_team"],
+         m.get("home_goals"), m.get("away_goals"), m["match_date"], m["status"])
+        for m in matches if m.get("competition_id")
+    ]
+    if upsert_rows:
+        values_ph = ",".join(["(%s,%s,%s,%s,%s,%s,%s,%s)"] * len(upsert_rows))
+        execute(
+            f"""INSERT INTO match_results
+                   (external_match_id, competition_id, home_team, away_team,
+                    home_goals, away_goals, match_date, status)
+               VALUES {values_ph}
+               ON CONFLICT (external_match_id) DO UPDATE SET
+                   home_goals = EXCLUDED.home_goals,
+                   away_goals = EXCLUDED.away_goals,
+                   status = EXCLUDED.status,
+                   updated_at = CURRENT_TIMESTAMP""",
+            tuple(v for row in upsert_rows for v in row),
+        )
 
     # Batch-score finished matches: 1 SELECT + 1 executemany instead of N+N
     finished_ids = [
