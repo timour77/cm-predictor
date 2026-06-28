@@ -176,6 +176,7 @@ def admin_init_db():
             cur.execute("ALTER TABLE predictions ADD COLUMN IF NOT EXISTS edit_count INTEGER DEFAULT 0")
             cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url TEXT")
             cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_bot BOOLEAN DEFAULT FALSE")
+            cur.execute("ALTER TABLE match_results ADD COLUMN IF NOT EXISTS penalty_winner TEXT")
             cur.execute("""CREATE TABLE IF NOT EXISTS bot_prediction_logs (
                 id SERIAL PRIMARY KEY,
                 match_id INTEGER NOT NULL,
