@@ -43,7 +43,13 @@ def admin_stuck_matches():
 
 
 @app.post("/api/admin/fix-match")
-def admin_fix_match(external_match_id: int, home_goals: int, away_goals: int, status: str = "FINISHED"):
+def admin_fix_match(
+    external_match_id: int,
+    home_goals: int,
+    away_goals: int,
+    status: str = "FINISHED",
+    penalty_winner: str = None,
+):
     """Manually set match result and recalculate points for all predictions on this match."""
     import traceback
     from app.database import get_conn, fetchall
@@ -53,9 +59,10 @@ def admin_fix_match(external_match_id: int, home_goals: int, away_goals: int, st
             cur = conn.cursor()
             cur.execute(
                 """UPDATE match_results
-                   SET status=%s, home_goals=%s, away_goals=%s, updated_at=CURRENT_TIMESTAMP
+                   SET status=%s, home_goals=%s, away_goals=%s,
+                       penalty_winner=%s, updated_at=CURRENT_TIMESTAMP
                    WHERE external_match_id=%s""",
-                (status, home_goals, away_goals, external_match_id),
+                (status, home_goals, away_goals, penalty_winner, external_match_id),
             )
             updated_rows = cur.rowcount
 
@@ -68,7 +75,7 @@ def admin_fix_match(external_match_id: int, home_goals: int, away_goals: int, st
             cur = conn.cursor()
             for pred in preds:
                 pts = calculate_points(
-                    pred["outcome"], pred["predicted_score"], home_goals, away_goals
+                    pred["outcome"], pred["predicted_score"], home_goals, away_goals, penalty_winner
                 )
                 cur.execute("UPDATE predictions SET points=%s WHERE id=%s", (pts, pred["id"]))
                 pts_updated += 1
@@ -93,7 +100,7 @@ def admin_recalculate_scores():
             cur = conn.cursor()
             cur.execute(
                 """SELECT p.id, p.outcome, p.predicted_score,
-                          mr.home_goals, mr.away_goals
+                          mr.home_goals, mr.away_goals, mr.penalty_winner
                    FROM predictions p
                    JOIN match_results mr ON mr.external_match_id = p.match_id
                    WHERE mr.status IN ('FINISHED', 'AWARDED')
@@ -108,6 +115,7 @@ def admin_recalculate_scores():
                     row["predicted_score"],
                     row["home_goals"],
                     row["away_goals"],
+                    row.get("penalty_winner"),
                 )
                 cur.execute("UPDATE predictions SET points=%s WHERE id=%s", (pts, row["id"]))
                 updated += 1

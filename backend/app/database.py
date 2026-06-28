@@ -52,6 +52,7 @@ SCHEMA_STATEMENTS = [
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_bot BOOLEAN DEFAULT FALSE",
     "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP",
     "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS edit_count INTEGER DEFAULT 0",
+    "ALTER TABLE match_results ADD COLUMN IF NOT EXISTS penalty_winner TEXT",
     "CREATE INDEX IF NOT EXISTS idx_predictions_user ON predictions(user_id)",
     "CREATE INDEX IF NOT EXISTS idx_predictions_match ON predictions(match_id)",
     "CREATE INDEX IF NOT EXISTS idx_predictions_competition ON predictions(competition_id)",

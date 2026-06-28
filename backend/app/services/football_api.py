@@ -60,6 +60,13 @@ def get_matches(
         away = m.get("awayTeam") or {}
         score = m.get("score", {})
         full_time = score.get("fullTime", {})
+        penalty_winner = None
+        if score.get("duration") == "PENALTY_SHOOTOUT":
+            w = score.get("winner")
+            if w == "HOME_TEAM":
+                penalty_winner = "home"
+            elif w == "AWAY_TEAM":
+                penalty_winner = "away"
         venue_data = m.get("venue") or {}
         venue_name = venue_data if isinstance(venue_data, str) else venue_data.get("name")
         result.append({
@@ -76,6 +83,7 @@ def get_matches(
             "status": m["status"],
             "home_goals": full_time.get("home"),
             "away_goals": full_time.get("away"),
+            "penalty_winner": penalty_winner,
             "matchday": m.get("matchday"),
             "stage": m.get("stage"),
         })

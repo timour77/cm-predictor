@@ -19,20 +19,22 @@ def _upsert_and_score(matches: list, current_user: Optional[dict]) -> List[Match
     # Single multi-row upsert (one round-trip) instead of one statement per match
     upsert_rows = [
         (m["external_id"], m["competition_id"], m["home_team"], m["away_team"],
-         m.get("home_goals"), m.get("away_goals"), m["match_date"], m["status"])
+         m.get("home_goals"), m.get("away_goals"), m["match_date"], m["status"],
+         m.get("penalty_winner"))
         for m in matches if m.get("competition_id")
     ]
     if upsert_rows:
-        values_ph = ",".join(["(%s,%s,%s,%s,%s,%s,%s,%s)"] * len(upsert_rows))
+        values_ph = ",".join(["(%s,%s,%s,%s,%s,%s,%s,%s,%s)"] * len(upsert_rows))
         execute(
             f"""INSERT INTO match_results
                    (external_match_id, competition_id, home_team, away_team,
-                    home_goals, away_goals, match_date, status)
+                    home_goals, away_goals, match_date, status, penalty_winner)
                VALUES {values_ph}
                ON CONFLICT (external_match_id) DO UPDATE SET
                    home_goals = EXCLUDED.home_goals,
                    away_goals = EXCLUDED.away_goals,
                    status = EXCLUDED.status,
+                   penalty_winner = EXCLUDED.penalty_winner,
                    updated_at = CURRENT_TIMESTAMP""",
             tuple(v for row in upsert_rows for v in row),
         )
@@ -45,9 +47,10 @@ def _upsert_and_score(matches: list, current_user: Optional[dict]) -> List[Match
         and m.get("away_goals") is not None
     ]
     if finished_ids:
+        finished_set = set(finished_ids)
         score_map = {
-            m["external_id"]: (m["home_goals"], m["away_goals"])
-            for m in matches if m["external_id"] in set(finished_ids)
+            m["external_id"]: (m["home_goals"], m["away_goals"], m.get("penalty_winner"))
+            for m in matches if m["external_id"] in finished_set
         }
         ph = ",".join(["%s"] * len(finished_ids))
         preds_to_score = fetchall(
@@ -58,7 +61,10 @@ def _upsert_and_score(matches: list, current_user: Optional[dict]) -> List[Match
             executemany(
                 "UPDATE predictions SET points=%s WHERE id=%s",
                 [
-                    (calculate_points(p["outcome"], p["predicted_score"], *score_map[p["match_id"]]), p["id"])
+                    (calculate_points(
+                        p["outcome"], p["predicted_score"],
+                        *score_map[p["match_id"]]
+                    ), p["id"])
                     for p in preds_to_score
                 ],
             )
