@@ -195,10 +195,10 @@ export function BracketPage() {
   const totalH = HEADER_H + effectiveFirstH + (thirdPlace ? MATCH_H + 48 : 0) + NAV_PAD
   const totalW = rounds.length ? colX(rounds.length - 1) + MATCH_W : 0
 
-  // Build SVG connector lines between rounds
-  const lines = []
-  rounds.forEach((round, ri) => {
-    if (ri >= rounds.length - 1) return
+  // Build SVG connector lines grouped by round pair (for per-pair opacity)
+  const lineGroups = rounds.slice(0, -1).map((round, ri) => {
+    const opacity = Math.max(0, 1 - Math.max(0, scrollProgress - ri))
+    const groupLines = []
     round.matches.forEach((_, mi) => {
       const x1 = colX(ri) + MATCH_W
       const y1 = centerY(ri, mi)
@@ -206,16 +206,15 @@ export function BracketPage() {
       const nextMI = Math.floor(mi / 2)
       const y2 = centerY(ri + 1, nextMI)
 
-      // Horizontal from right edge of match to midpoint
-      lines.push(<line key={`h-${ri}-${mi}`} x1={x1} y1={y1} x2={midX} y2={y1} />)
+      groupLines.push(<line key={`h-${ri}-${mi}`} x1={x1} y1={y1} x2={midX} y2={y1} />)
 
-      // Vertical at midpoint + horizontal to next round (drawn once per pair from the top match)
       if (mi % 2 === 0) {
         const yPartner = mi + 1 < round.matches.length ? centerY(ri, mi + 1) : y1
-        lines.push(<line key={`v-${ri}-${mi}`} x1={midX} y1={y1} x2={midX} y2={yPartner} />)
-        lines.push(<line key={`h2-${ri}-${nextMI}`} x1={midX} y1={y2} x2={colX(ri + 1)} y2={y2} />)
+        groupLines.push(<line key={`v-${ri}-${mi}`} x1={midX} y1={y1} x2={midX} y2={yPartner} />)
+        groupLines.push(<line key={`h2-${ri}-${nextMI}`} x1={midX} y1={y2} x2={colX(ri + 1)} y2={y2} />)
       }
     })
+    return { ri, opacity, lines: groupLines }
   })
 
   if (loading) return (
@@ -258,9 +257,11 @@ export function BracketPage() {
         <svg
           style={{ position: 'absolute', top: 0, left: 0, width: totalW, height: totalH, overflow: 'visible', pointerEvents: 'none' }}
         >
-          <g style={{ stroke: 'rgba(255,255,255,0.15)', strokeWidth: 1.5, fill: 'none', strokeLinecap: 'round' }}>
-            {lines}
-          </g>
+          {lineGroups.map(({ ri, opacity, lines }) => (
+            <g key={ri} opacity={opacity} style={{ stroke: 'rgba(255,255,255,0.15)', strokeWidth: 1.5, fill: 'none', strokeLinecap: 'round' }}>
+              {lines}
+            </g>
+          ))}
         </svg>
 
         {/* Match slots */}
