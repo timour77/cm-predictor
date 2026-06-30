@@ -114,30 +114,65 @@ export function BracketPage() {
   }, [])
 
   const playoffStages = STAGE_ORDER.filter(s => s !== '3RD_PLACE')
-  const rounds = []
-  playoffStages.forEach(stage => {
-    const sm = matches.filter(m => m.stage === stage)
-    if (!sm.length) return
 
-    const prevRound = rounds[rounds.length - 1]
-    if (!prevRound) {
-      // First round: external_id order matches bracket draw order
-      sm.sort((a, b) => a.external_id - b.external_id)
-    } else {
-      // For later rounds, sort by where each match's teams appeared in the
-      // previous round. This preserves bracket topology even when the API
-      // assigns IDs out of bracket order (e.g. Brazil's QF/R16 slot gets
-      // a lower ID than the Portugal/Spain slot despite being lower in the draw).
-      const teamIdx = {}
-      prevRound.matches.forEach((m, i) => {
-        if (m.home_team && m.home_team !== 'TBD') teamIdx[m.home_team] = i
-        if (m.away_team && m.away_team !== 'TBD') teamIdx[m.away_team] = i
+  // Collect each stage sorted by external_id (the API's stable identifier)
+  const byStage = {}
+  playoffStages.forEach(stage => {
+    const sm = matches.filter(m => m.stage === stage).sort((a, b) => a.external_id - b.external_id)
+    if (sm.length) byStage[stage] = sm
+  })
+  const activeStages = playoffStages.filter(s => byStage[s])
+
+  // For the 2026 WC, LAST_16 slot IDs are lower than LAST_32 IDs (pre-assigned
+  // before the 48-team format added the LAST_32 round), and the bracket topology
+  // is non-consecutive: LAST_32[8,9] (Brazil/IvoryCoast) feeds LAST_16[2],
+  // not LAST_16[4] as floor(mi/2) would imply with an unmodified sort.
+  //
+  // Fix: for each round, reorder its matches so that consecutive pairs align
+  // with the correct slot in the NEXT round. We infer the pairing by looking
+  // at which current-round teams already appear in the next round.
+  // Consecutive pairs in the external_id sort always feed the same next-round slot.
+  const rounds = []
+  activeStages.forEach((stage, si) => {
+    let sm = byStage[stage]
+    const nextSm = byStage[activeStages[si + 1]]
+
+    if (nextSm) {
+      const numPairs = Math.floor(sm.length / 2)
+
+      // Map every team name → pair index (floor(i/2)) in the current stage
+      const teamToPair = {}
+      sm.forEach((m, i) => {
+        const p = Math.floor(i / 2)
+        if (m.home_team && m.home_team !== 'TBD') teamToPair[m.home_team] = p
+        if (m.away_team && m.away_team !== 'TBD') teamToPair[m.away_team] = p
       })
-      sm.sort((a, b) => {
-        const pa = Math.min(teamIdx[a.home_team] ?? Infinity, teamIdx[a.away_team] ?? Infinity)
-        const pb = Math.min(teamIdx[b.home_team] ?? Infinity, teamIdx[b.away_team] ?? Infinity)
-        return pa !== pb ? pa - pb : a.external_id - b.external_id
+
+      // For each next-round slot, find which current-round pair feeds it
+      const assignedPairs = new Set()
+      const pairForSlot = nextSm.map(m => {
+        for (const team of [m.home_team, m.away_team]) {
+          if (team && team !== 'TBD' && teamToPair[team] !== undefined) {
+            const p = teamToPair[team]
+            if (!assignedPairs.has(p)) { assignedPairs.add(p); return p }
+          }
+        }
+        return null
       })
+
+      // Fill slots with no known team using remaining pairs (original id order)
+      const remaining = []
+      for (let i = 0; i < numPairs; i++) if (!assignedPairs.has(i)) remaining.push(i)
+      let ri = 0
+      const finalPairs = pairForSlot.map(p => p !== null ? p : remaining[ri++])
+
+      // Rebuild the stage in the corrected order
+      const reordered = []
+      finalPairs.forEach(p => {
+        if (sm[p * 2]) reordered.push(sm[p * 2])
+        if (sm[p * 2 + 1]) reordered.push(sm[p * 2 + 1])
+      })
+      sm = reordered
     }
 
     rounds.push({ stage, matches: sm })
