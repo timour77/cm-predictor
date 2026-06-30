@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { api } from '../services/api'
 import { STAGE_LABELS, STAGE_ORDER } from '../components/MatchCard'
 
@@ -9,10 +9,6 @@ const MATCH_W = 134
 const COL_GAP = 36
 const SLOT_H = 88    // match height + gap between matches in first round
 const HEADER_H = 28  // space for stage label above matches
-
-function centerY(roundIdx, matchIdx) {
-  return HEADER_H + (matchIdx + 0.5) * Math.pow(2, roundIdx) * SLOT_H
-}
 
 function colX(roundIdx) {
   return roundIdx * (MATCH_W + COL_GAP)
@@ -105,6 +101,19 @@ export function BracketPage() {
   const [matches, setMatches] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [scrollLeft, setScrollLeft] = useState(0)
+
+  const handleScroll = useCallback((e) => {
+    setScrollLeft(e.currentTarget.scrollLeft)
+  }, [])
+
+  const colStep = MATCH_W + COL_GAP
+  const scrollProgress = scrollLeft / colStep
+
+  function centerY(roundIdx, matchIdx) {
+    const effectiveIdx = Math.max(0, roundIdx - scrollProgress)
+    return HEADER_H + (matchIdx + 0.5) * Math.pow(2, effectiveIdx) * SLOT_H
+  }
 
   useEffect(() => {
     api.getBracket(WORLD_CUP_ID)
@@ -181,7 +190,9 @@ export function BracketPage() {
 
   const firstCount = rounds[0]?.matches.length ?? 0
   const NAV_PAD = 96
-  const totalH = HEADER_H + firstCount * SLOT_H + (thirdPlace ? MATCH_H + 48 : 0) + NAV_PAD
+  const clampedProgress = Math.min(Math.max(scrollProgress, 0), Math.max(rounds.length - 1, 0))
+  const effectiveFirstH = firstCount > 0 ? firstCount * SLOT_H / Math.pow(2, clampedProgress) : 0
+  const totalH = HEADER_H + effectiveFirstH + (thirdPlace ? MATCH_H + 48 : 0) + NAV_PAD
   const totalW = rounds.length ? colX(rounds.length - 1) + MATCH_W : 0
 
   // Build SVG connector lines between rounds
@@ -225,10 +236,10 @@ export function BracketPage() {
     </div>
   )
 
-  const thirdPlaceY = HEADER_H + firstCount * SLOT_H + 32
+  const thirdPlaceY = HEADER_H + effectiveFirstH + 32
 
   return (
-    <div style={{ flex: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch', padding: 16 }}>
+    <div style={{ flex: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch', padding: 16 }} onScroll={handleScroll}>
       <div style={{ position: 'relative', width: totalW, height: totalH }}>
 
         {/* Stage column labels */}
