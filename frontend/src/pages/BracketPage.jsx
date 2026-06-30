@@ -118,7 +118,7 @@ export function BracketPage() {
   playoffStages.forEach(stage => {
     const sm = matches
       .filter(m => m.stage === stage)
-      .sort((a, b) => a.external_id - b.external_id)
+      .sort((a, b) => new Date(a.match_date) - new Date(b.match_date) || a.external_id - b.external_id)
     if (sm.length) rounds.push({ stage, matches: sm })
   })
   const thirdPlace = matches.find(m => m.stage === '3RD_PLACE')
