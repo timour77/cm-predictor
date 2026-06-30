@@ -116,10 +116,31 @@ export function BracketPage() {
   const playoffStages = STAGE_ORDER.filter(s => s !== '3RD_PLACE')
   const rounds = []
   playoffStages.forEach(stage => {
-    const sm = matches
-      .filter(m => m.stage === stage)
-      .sort((a, b) => new Date(a.match_date) - new Date(b.match_date) || a.external_id - b.external_id)
-    if (sm.length) rounds.push({ stage, matches: sm })
+    const sm = matches.filter(m => m.stage === stage)
+    if (!sm.length) return
+
+    const prevRound = rounds[rounds.length - 1]
+    if (!prevRound) {
+      // First round: external_id order matches bracket draw order
+      sm.sort((a, b) => a.external_id - b.external_id)
+    } else {
+      // For later rounds, sort by where each match's teams appeared in the
+      // previous round. This preserves bracket topology even when the API
+      // assigns IDs out of bracket order (e.g. Brazil's QF/R16 slot gets
+      // a lower ID than the Portugal/Spain slot despite being lower in the draw).
+      const teamIdx = {}
+      prevRound.matches.forEach((m, i) => {
+        if (m.home_team && m.home_team !== 'TBD') teamIdx[m.home_team] = i
+        if (m.away_team && m.away_team !== 'TBD') teamIdx[m.away_team] = i
+      })
+      sm.sort((a, b) => {
+        const pa = Math.min(teamIdx[a.home_team] ?? Infinity, teamIdx[a.away_team] ?? Infinity)
+        const pb = Math.min(teamIdx[b.home_team] ?? Infinity, teamIdx[b.away_team] ?? Infinity)
+        return pa !== pb ? pa - pb : a.external_id - b.external_id
+      })
+    }
+
+    rounds.push({ stage, matches: sm })
   })
   const thirdPlace = matches.find(m => m.stage === '3RD_PLACE')
 
