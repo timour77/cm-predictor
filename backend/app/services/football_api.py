@@ -11,6 +11,21 @@ _cache: Dict[str, tuple] = {}
 CACHE_TTL = 300  # 5 minutes
 
 
+def _regulation_score(score: dict) -> dict:
+    # football-data.org's fullTime score for PENALTY_SHOOTOUT matches includes
+    # the penalty shootout goals added on top of regularTime (e.g. reg 1-1 +
+    # pens 2-4 -> fullTime 3-5), which is not the actual match score. Fall back
+    # to regularTime + extraTime in that case; fullTime is correct otherwise.
+    if score.get("duration") == "PENALTY_SHOOTOUT":
+        reg = score.get("regularTime") or {}
+        et = score.get("extraTime") or {}
+        return {
+            "home": (reg.get("home") or 0) + (et.get("home") or 0),
+            "away": (reg.get("away") or 0) + (et.get("away") or 0),
+        }
+    return score.get("fullTime", {})
+
+
 def _cached_get(url: str, params: dict = None) -> dict:
     cache_key = url + str(sorted((params or {}).items()))
     now = time.time()
@@ -59,7 +74,7 @@ def get_matches(
         home = m.get("homeTeam") or {}
         away = m.get("awayTeam") or {}
         score = m.get("score", {})
-        full_time = score.get("fullTime", {})
+        full_time = _regulation_score(score)
         penalty_winner = None
         if score.get("duration") == "PENALTY_SHOOTOUT":
             w = score.get("winner")
@@ -98,7 +113,7 @@ def get_matches_today(date_str: str) -> List[Dict]:
         home = m.get("homeTeam") or {}
         away = m.get("awayTeam") or {}
         score = m.get("score", {})
-        full_time = score.get("fullTime", {})
+        full_time = _regulation_score(score)
         competition = m.get("competition", {})
         result.append({
             "external_id": m["id"],
@@ -183,7 +198,7 @@ def get_team_matches(
         if not by_id and not by_name:
             continue
         score = m.get("score", {})
-        full_time = score.get("fullTime", {})
+        full_time = _regulation_score(score)
         result.append({
             "external_id": m["id"],
             "competition_id": competition_id,
