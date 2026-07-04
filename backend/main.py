@@ -141,6 +141,44 @@ def admin_bot_prediction_logs(competition_id: int = None, limit: int = 50):
     return rows
 
 
+@app.post("/api/admin/reset-tbd-bot-predictions")
+def admin_reset_tbd_bot_predictions(competition_id: int):
+    """Delete bot predictions made while opponents were still placeholders (TBD),
+    so they can be regenerated now that real teams are known."""
+    import traceback
+    from app.database import fetchall, execute
+    try:
+        bot = fetchall("SELECT id FROM users WHERE username='Claude' AND is_bot=TRUE")
+        if not bot:
+            return {"status": "ok", "reset": 0, "match_ids": []}
+        bot_user_id = bot[0]["id"]
+
+        logs = fetchall(
+            """SELECT DISTINCT match_id FROM bot_prediction_logs
+               WHERE competition_id=%s
+                 AND (home_team ILIKE %s OR away_team ILIKE %s
+                      OR home_team ILIKE %s OR away_team ILIKE %s)""",
+            (competition_id, "%TBD%", "%TBD%", "%Winner%", "%Winner%"),
+        )
+        match_ids = [row["match_id"] for row in logs]
+        if not match_ids:
+            return {"status": "ok", "reset": 0, "match_ids": []}
+
+        for match_id in match_ids:
+            execute(
+                "DELETE FROM predictions WHERE user_id=%s AND match_id=%s",
+                (bot_user_id, match_id),
+            )
+            execute(
+                "DELETE FROM bot_prediction_logs WHERE competition_id=%s AND match_id=%s",
+                (competition_id, match_id),
+            )
+
+        return {"status": "ok", "reset": len(match_ids), "match_ids": match_ids}
+    except Exception as e:
+        return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
+
+
 @app.post("/api/admin/generate-bot-predictions")
 def admin_generate_bot_predictions(competition_id: int):
     import traceback
