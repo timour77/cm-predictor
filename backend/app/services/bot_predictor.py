@@ -2,6 +2,7 @@ import json
 import re
 import requests
 from typing import Optional
+from datetime import datetime
 
 import anthropic
 
@@ -175,27 +176,36 @@ Respond with JSON only — no markdown, no explanation outside the JSON:
     return json.loads(text.strip())
 
 
-def run_bot_predictions(competition_id: int, competition_name: str, matches: list) -> dict:
+def run_bot_predictions(competition_id: int, competition_name: str, matches: list, force: bool = False) -> dict:
     bot_user_id = get_or_create_bot_user()
     standings = fetch_standings(competition_id)
     form = fetch_recent_form(competition_id)
     odds_events = fetch_all_odds(competition_id)  # single API call for all matches
 
     results = {"generated": 0, "skipped": 0, "errors": [], "predictions": []}
+    now = datetime.utcnow()
 
     for match in matches:
-        if match.get("status") not in ("SCHEDULED", "TIMED"):
+        # Skip past matches based on match date
+        try:
+            match_time = datetime.fromisoformat(match["match_date"].replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            results["skipped"] += 1
+            continue
+
+        if match_time <= now:
             results["skipped"] += 1
             continue
 
         match_id = match["external_id"]
-        existing = fetchone(
-            "SELECT id FROM predictions WHERE user_id=%s AND match_id=%s",
-            (bot_user_id, match_id),
-        )
-        if existing:
-            results["skipped"] += 1
-            continue
+        if not force:
+            existing = fetchone(
+                "SELECT id FROM predictions WHERE user_id=%s AND match_id=%s",
+                (bot_user_id, match_id),
+            )
+            if existing:
+                results["skipped"] += 1
+                continue
 
         home_team = match["home_team"]
         away_team = match["away_team"]
@@ -217,7 +227,8 @@ def run_bot_predictions(competition_id: int, competition_name: str, matches: lis
                 """INSERT INTO predictions
                    (user_id, match_id, competition_id, outcome, predicted_score, updated_at, edit_count)
                    VALUES (%s,%s,%s,%s,%s,NOW(),0)
-                   ON CONFLICT (user_id, match_id) DO NOTHING""",
+                   ON CONFLICT (user_id, match_id) DO UPDATE SET
+                   outcome=EXCLUDED.outcome, predicted_score=EXCLUDED.predicted_score, updated_at=NOW()""",
                 (bot_user_id, match_id, competition_id, pred["outcome"], pred["predicted_score"]),
             )
             execute(

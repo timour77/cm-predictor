@@ -179,8 +179,21 @@ def admin_reset_tbd_bot_predictions(competition_id: int):
         return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
 
 
+@app.get("/api/admin/debug-match-statuses")
+def admin_debug_match_statuses(competition_id: int):
+    from app.services.football_api import get_matches
+    matches = get_matches(competition_id)
+    statuses = {}
+    for m in matches:
+        status = m["status"]
+        if status not in statuses:
+            statuses[status] = []
+        statuses[status].append(f"{m['home_team']} vs {m['away_team']} ({m['match_date'][:10]})")
+    return {"statuses": statuses, "total": len(matches)}
+
+
 @app.post("/api/admin/generate-bot-predictions")
-def admin_generate_bot_predictions(competition_id: int):
+def admin_generate_bot_predictions(competition_id: int, force: bool = False):
     import traceback
     from app.database import fetchone as db_fetchone
     from app.services.football_api import get_matches
@@ -189,7 +202,7 @@ def admin_generate_bot_predictions(competition_id: int):
         comp = db_fetchone("SELECT name FROM competitions WHERE id=%s", (competition_id,))
         competition_name = comp["name"] if comp else f"Competition {competition_id}"
         matches = get_matches(competition_id)
-        result = run_bot_predictions(competition_id, competition_name, matches)
+        result = run_bot_predictions(competition_id, competition_name, matches, force=force)
         return {"status": "ok", "competition": competition_name, **result}
     except Exception as e:
         return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
