@@ -2,7 +2,7 @@ import json
 import re
 import requests
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 import anthropic
 
@@ -183,7 +183,7 @@ def run_bot_predictions(competition_id: int, competition_name: str, matches: lis
     odds_events = fetch_all_odds(competition_id)  # single API call for all matches
 
     results = {"generated": 0, "skipped": 0, "errors": [], "predictions": []}
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     for match in matches:
         # Skip past matches based on match date
