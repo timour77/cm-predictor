@@ -101,7 +101,8 @@ def admin_sync_live_match(match_id: int):
         resp = requests.get(f"{BASE_URL}/matches/{match_id}", headers=HEADERS, timeout=10)
         resp.raise_for_status()
         match_data = resp.json()
-        m = match_data.get("match", {})
+        # API returns match data either under "match" key or directly
+        m = match_data.get("match") or match_data
 
         score = m.get("score", {})
         full_time = _regulation_score(score)
