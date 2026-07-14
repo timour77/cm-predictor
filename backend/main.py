@@ -251,6 +251,39 @@ def admin_reset_tbd_bot_predictions(competition_id: int):
         return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
 
 
+@app.get("/api/admin/today-matches")
+def admin_today_matches(competition_id: int = 2000):
+    """Show all matches for today with their status and scores."""
+    from datetime import datetime, timezone
+    from app.services.football_api import get_matches
+
+    matches = get_matches(competition_id)
+    today = datetime.now(timezone.utc).date()
+
+    today_matches = []
+    for m in matches:
+        try:
+            match_date = datetime.fromisoformat(m["match_date"].replace("Z", "+00:00")).date()
+            if match_date == today:
+                today_matches.append({
+                    "id": m["external_id"],
+                    "home_team": m["home_team"],
+                    "away_team": m["away_team"],
+                    "status": m["status"],
+                    "time": m["match_date"],
+                    "score": f"{m['home_goals']}-{m['away_goals']}" if m['home_goals'] is not None else "not started",
+                })
+        except:
+            pass
+
+    return {
+        "date": str(today),
+        "competition_id": competition_id,
+        "matches": today_matches,
+        "total": len(today_matches)
+    }
+
+
 @app.get("/api/admin/debug-live-match")
 def admin_debug_live_match(match_id: int):
     """Debug: show raw match data from API."""
