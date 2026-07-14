@@ -257,22 +257,17 @@ def admin_debug_live_match(match_id: int):
     import traceback
     from app.services.football_api import BASE_URL, HEADERS
     import requests
+    import json
 
     try:
         resp = requests.get(f"{BASE_URL}/matches/{match_id}", headers=HEADERS, timeout=10)
-        resp.raise_for_status()
         data = resp.json()
-        m = data.get("match", {})
 
-        return {
-            "match_id": match_id,
-            "status": m.get("status"),
-            "score": m.get("score"),
-            "utcDate": m.get("utcDate"),
-            "homeTeam": m.get("homeTeam", {}).get("name"),
-            "awayTeam": m.get("awayTeam", {}).get("name"),
-            "full_response_keys": list(m.keys())
-        }
+        if resp.status_code != 200:
+            return {"status": "error", "http_status": resp.status_code, "api_response": data}
+
+        # Return full response for debugging
+        return {"full_response": data}
     except Exception as e:
         return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
 
