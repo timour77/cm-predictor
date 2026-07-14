@@ -89,6 +89,75 @@ def admin_fix_match(
         return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
 
 
+@app.post("/api/admin/generate-prediction-for-match")
+def admin_generate_prediction_for_match(match_id: int, competition_id: int = 2000):
+    """Generate Claude prediction for a specific match."""
+    import traceback
+    from app.database import fetchone, execute
+    from app.services.football_api import get_matches, BASE_URL, HEADERS
+    from app.services.bot_predictor import (
+        generate_prediction, get_or_create_bot_user, fetch_standings,
+        fetch_recent_form, fetch_all_odds, find_odds_for_match
+    )
+    import requests
+
+    try:
+        # Get competition name
+        comp = fetchone("SELECT name FROM competitions WHERE id=%s", (competition_id,))
+        competition_name = comp["name"] if comp else f"Competition {competition_id}"
+
+        # Fetch match from API
+        resp = requests.get(f"{BASE_URL}/matches/{match_id}", headers=HEADERS, timeout=10)
+        resp.raise_for_status()
+        match_data = resp.json()
+        m = match_data.get("match") or match_data
+
+        # Get bot user
+        bot_user_id = get_or_create_bot_user()
+
+        # Fetch context data
+        standings = fetch_standings(competition_id)
+        form = fetch_recent_form(competition_id)
+        odds_events = fetch_all_odds(competition_id)
+
+        home_team = m.get("homeTeam", {}).get("name") or "TBD"
+        away_team = m.get("awayTeam", {}).get("name") or "TBD"
+        match_date = m.get("utcDate", "")
+
+        # Generate prediction
+        odds_text = find_odds_for_match(odds_events, home_team, away_team)
+        pred = generate_prediction(
+            home_team=home_team,
+            away_team=away_team,
+            competition_name=competition_name,
+            match_date=match_date,
+            standings=standings,
+            form=form,
+            odds_text=odds_text,
+        )
+
+        # Insert prediction
+        execute(
+            """INSERT INTO predictions
+               (user_id, match_id, competition_id, outcome, predicted_score, updated_at, edit_count)
+               VALUES (%s,%s,%s,%s,%s,NOW(),0)
+               ON CONFLICT (user_id, match_id) DO UPDATE SET
+               outcome=EXCLUDED.outcome, predicted_score=EXCLUDED.predicted_score, updated_at=NOW()""",
+            (bot_user_id, match_id, competition_id, pred["outcome"], pred["predicted_score"]),
+        )
+
+        return {
+            "status": "ok",
+            "match_id": match_id,
+            "match": f"{home_team} vs {away_team}",
+            "outcome": pred["outcome"],
+            "predicted_score": pred["predicted_score"],
+            "reasoning": pred.get("reasoning", ""),
+        }
+    except Exception as e:
+        return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
+
+
 @app.post("/api/admin/sync-live-match")
 def admin_sync_live_match(match_id: int):
     """Fetch latest match data from API and update score if changed."""
