@@ -89,6 +89,78 @@ def admin_fix_match(
         return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
 
 
+@app.post("/api/admin/sync-live-match")
+def admin_sync_live_match(match_id: int):
+    """Fetch latest match data from API and update score if changed."""
+    import traceback
+    from app.database import fetchone as db_fetchone, fetchall, get_conn
+    from app.services.football_api import BASE_URL, HEADERS, _regulation_score
+    import requests
+
+    try:
+        resp = requests.get(f"{BASE_URL}/matches/{match_id}", headers=HEADERS, timeout=10)
+        resp.raise_for_status()
+        match_data = resp.json()
+        m = match_data.get("match", {})
+
+        score = m.get("score", {})
+        full_time = _regulation_score(score)
+        home_goals = full_time.get("home")
+        away_goals = full_time.get("away")
+        status = m.get("status")
+
+        # Check current state in DB
+        current = db_fetchone(
+            "SELECT home_goals, away_goals, status FROM match_results WHERE external_match_id=%s",
+            (match_id,)
+        )
+
+        if not current:
+            return {"status": "error", "detail": "Match not found in database"}
+
+        # Update if status or score changed
+        updated = False
+        if current["status"] != status or current["home_goals"] != home_goals or current["away_goals"] != away_goals:
+            with get_conn() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    """UPDATE match_results
+                       SET status=%s, home_goals=%s, away_goals=%s, updated_at=CURRENT_TIMESTAMP
+                       WHERE external_match_id=%s""",
+                    (status, home_goals, away_goals, match_id),
+                )
+            updated = True
+
+        # Recalculate points if result was updated and match is finished
+        pts_updated = 0
+        if updated and status in ('FINISHED', 'AWARDED') and home_goals is not None and away_goals is not None:
+            from app.services.scoring import calculate_points
+            preds = fetchall(
+                "SELECT id, outcome, predicted_score FROM predictions WHERE match_id=%s",
+                (match_id,),
+            )
+            with get_conn() as conn:
+                cur = conn.cursor()
+                for pred in preds:
+                    pts = calculate_points(
+                        pred["outcome"], pred["predicted_score"], home_goals, away_goals
+                    )
+                    cur.execute("UPDATE predictions SET points=%s WHERE id=%s", (pts, pred["id"]))
+                    pts_updated += 1
+
+        return {
+            "status": "ok",
+            "match_id": match_id,
+            "current_status": status,
+            "home_goals": home_goals,
+            "away_goals": away_goals,
+            "updated": updated,
+            "predictions_recalculated": pts_updated
+        }
+    except Exception as e:
+        return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
+
+
 @app.post("/api/admin/recalculate-scores")
 def admin_recalculate_scores():
     import traceback
