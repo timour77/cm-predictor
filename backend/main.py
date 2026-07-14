@@ -162,6 +162,58 @@ def admin_sync_live_match(match_id: int):
         return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
 
 
+@app.post("/api/admin/recalculate-match-predictions")
+def admin_recalculate_match_predictions(match_id: int):
+    """Recalculate points for all predictions on a specific match."""
+    import traceback
+    from app.database import fetchall, get_conn
+    from app.services.scoring import calculate_points
+
+    try:
+        # Get match result
+        match_result = fetchall(
+            "SELECT external_match_id, home_goals, away_goals, penalty_winner FROM match_results WHERE external_match_id=%s",
+            (match_id,)
+        )
+        if not match_result:
+            return {"status": "error", "detail": "Match not found"}
+
+        mr = match_result[0]
+        home_goals = mr["home_goals"]
+        away_goals = mr["away_goals"]
+        penalty_winner = mr.get("penalty_winner")
+
+        if home_goals is None or away_goals is None:
+            return {"status": "error", "detail": "Match has no final score"}
+
+        # Get all predictions for this match
+        preds = fetchall(
+            "SELECT id, outcome, predicted_score FROM predictions WHERE match_id=%s",
+            (match_id,),
+        )
+
+        # Recalculate points for each prediction
+        updated = 0
+        with get_conn() as conn:
+            cur = conn.cursor()
+            for pred in preds:
+                pts = calculate_points(
+                    pred["outcome"], pred["predicted_score"], home_goals, away_goals, penalty_winner
+                )
+                cur.execute("UPDATE predictions SET points=%s WHERE id=%s", (pts, pred["id"]))
+                updated += 1
+
+        return {
+            "status": "ok",
+            "match_id": match_id,
+            "home_goals": home_goals,
+            "away_goals": away_goals,
+            "predictions_updated": updated
+        }
+    except Exception as e:
+        return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
+
+
 @app.post("/api/admin/recalculate-scores")
 def admin_recalculate_scores():
     import traceback
