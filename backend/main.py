@@ -251,6 +251,32 @@ def admin_reset_tbd_bot_predictions(competition_id: int):
         return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
 
 
+@app.get("/api/admin/debug-live-match")
+def admin_debug_live_match(match_id: int):
+    """Debug: show raw match data from API."""
+    import traceback
+    from app.services.football_api import BASE_URL, HEADERS
+    import requests
+
+    try:
+        resp = requests.get(f"{BASE_URL}/matches/{match_id}", headers=HEADERS, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        m = data.get("match", {})
+
+        return {
+            "match_id": match_id,
+            "status": m.get("status"),
+            "score": m.get("score"),
+            "utcDate": m.get("utcDate"),
+            "homeTeam": m.get("homeTeam", {}).get("name"),
+            "awayTeam": m.get("awayTeam", {}).get("name"),
+            "full_response_keys": list(m.keys())
+        }
+    except Exception as e:
+        return {"status": "error", "detail": str(e), "traceback": traceback.format_exc()}
+
+
 @app.get("/api/admin/debug-match-statuses")
 def admin_debug_match_statuses(competition_id: int):
     from app.services.football_api import get_matches
